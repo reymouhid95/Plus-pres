@@ -161,6 +161,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
           <button
             type="button"
             onClick={copyCode}
+            data-testid="session-code"
             className="card mt-8 flex items-center gap-4 px-8 py-5 transition hover:border-accent/45 animate-pop"
             aria-label="Copier le code de la partie"
           >
@@ -303,6 +304,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             <p className="mt-2 text-sm leading-relaxed text-fg">{round.question.text}</p>
 
             <p
+              data-testid="reveal-result"
               className={`mt-4 font-display text-2xl font-semibold ${round.matched ? "text-sage" : "text-accent"}`}
             >
               {round.matched ? (
@@ -366,6 +368,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                   <button
                     key={option}
                     type="button"
+                    data-testid="answer-option"
                     onClick={() => answer(option)}
                     disabled={answering}
                     className="btn btn-secondary justify-start text-left disabled:opacity-60"
@@ -392,6 +395,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             {isMyTurn ? (
               <button
                 type="button"
+                data-testid="draw"
                 onClick={draw}
                 disabled={drawing}
                 className="btn btn-block text-base disabled:opacity-60"
@@ -444,7 +448,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
       </section>
 
       {/* Score en cours */}
-      <section className="card mt-4 flex items-center justify-between px-5 py-4">
+      <section className="card mt-4 flex items-center justify-between px-5 py-4" data-testid="compatibility">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-muted">Compatibilité</p>
           <p className="mt-0.5 text-sm text-muted">
@@ -484,6 +488,7 @@ function TopBar({
         <button
           type="button"
           onClick={onCopy}
+          data-testid="topbar-code"
           className="btn btn-ghost btn-sm"
           title="Copier le code"
           aria-label={`Copier le code ${code}`}

@@ -60,10 +60,47 @@ Autres scripts : `pnpm build`, `pnpm start`, `pnpm typecheck`.
 4. Déployez — Vercel exécute `prisma generate` automatiquement via `postinstall`
 5. Lancez `pnpm prisma migrate deploy` (via Vercel CLI ou un script de build) puis `pnpm prisma db seed` une fois, pour peupler les questions en production
 
-## Prochaines étapes suggérées (voir le cahier des charges v2)
+## 6. Tests
 
-- Remplacer le polling (2,5s) par du temps réel (Pusher, Ably, ou WebSocket via un serveur dédié)
-- Mode gage si un joueur veut passer une question
-- Historique complet des manches consultable après la partie
-- Mode PWA installable
-- Questions personnalisées ajoutées par le couple lui-même
+```bash
+pnpm typecheck   # TypeScript strict
+pnpm test        # tests unitaires (Vitest + Testing Library)
+pnpm test:e2e    # build puis tests end-to-end (Playwright)
+pnpm test:watch  # Vitest en mode watch
+```
+
+### Base de test locale (e2e)
+
+Les e2e ne touchent jamais à Neon : ils utilisent une base Postgres dédiée,
+décrite dans `.env.test` (port **5433**).
+
+```bash
+docker run -d --name plus-pres-test-db \
+  -e POSTGRES_USER=pluspres -e POSTGRES_PASSWORD=pluspres \
+  -e POSTGRES_DB=pluspres_test \
+  -p 5433:5432 -v plus-pres-test-pg:/var/lib/postgresql \
+  postgres:18
+
+DOTENV_CONFIG_PATH=.env.test npx prisma migrate deploy
+DOTENV_CONFIG_PATH=.env.test npx prisma db seed
+```
+
+Avant chaque suite, `e2e/global-setup.ts` rejoue `migrate deploy`, purge les
+parties/rounds laissés par la précédente exécution (`e2e/reset-db.ts`) puis
+relance le seed. Le serveur de test tourne sur le port **3100**.
+
+### CI
+
+`.github/workflows/ci.yml` enchaîne le job `quality` (typecheck, Vitest, build)
+puis le job `e2e` (service Postgres 16, migrations, Playwright, rapport en
+artefact en cas d'échec). Aucun secret requis : la base de test est provisionnée
+par le workflow.
+
+## Prochaines étapes (v2)
+
+1. **Tests + CI** — fait (Vitest, Playwright, GitHub Actions)
+2. **Temps réel + minuteur** — SSE courts avec repli polling (Vercel serverless),
+   `Round.startedAt/expiresAt`, timer 60/45/30 s selon le niveau
+3. **Historique & statistiques** — `/history`, `/game/[id]/review`, sparklines SVG
+4. **Lien d'invitation + notifications in-app** — `/join/[CODE]`, QR code, modèle `Notification`
+5. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions

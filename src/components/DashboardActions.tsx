@@ -56,7 +56,12 @@ export default function DashboardActions() {
         <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted">
           Crée une partie et invite ton partenaire avec le code généré.
         </p>
-        <button onClick={createGame} disabled={loading} className="btn btn-primary btn-block mt-5">
+        <button
+          onClick={createGame}
+          disabled={loading}
+          data-testid="create-session"
+          className="btn btn-primary btn-block mt-5"
+        >
           {loading ? "Création…" : "Créer une partie"}
           {!loading && <ArrowRight className="size-4" />}
         </button>
@@ -76,9 +81,15 @@ export default function DashboardActions() {
           placeholder="ABC123"
           maxLength={10}
           aria-label="Code de la partie"
+          data-testid="join-code"
           className="input mt-5 text-center font-display text-lg tracking-[0.35em] uppercase"
         />
-        <button type="submit" disabled={loading || code.trim().length < 4} className="btn btn-secondary btn-block mt-3">
+        <button
+          type="submit"
+          disabled={loading || code.trim().length < 4}
+          data-testid="join-session"
+          className="btn btn-secondary btn-block mt-3"
+        >
           {loading ? "Recherche…" : "Rejoindre la partie"}
         </button>
       </form>

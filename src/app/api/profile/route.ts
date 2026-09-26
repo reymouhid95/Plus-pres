@@ -1,15 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-
-const schema = z.object({
-  displayName: z.string().min(1).max(40).optional(),
-  avatarEmoji: z.string().min(1).max(8).optional(),
-  bio: z.string().max(280).optional(),
-  birthdate: z.string().optional(),
-});
+import { profileSchema } from "@/lib/validation";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -27,7 +20,7 @@ export async function PATCH(req: Request) {
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
   const body = await req.json();
-  const parsed = schema.safeParse(body);
+  const parsed = profileSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Champs invalides." }, { status: 400 });
 
   const { birthdate, ...rest } = parsed.data;

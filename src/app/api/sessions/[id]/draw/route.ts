@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { pickUnusedQuestion } from "@/lib/questions";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,22 +30,19 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "Une carte est déjà en attente de réponses." }, { status: 400 });
   }
 
-  const usedQuestionIds = (
-    await db.round.findMany({ where: { sessionId: gameSession.id }, select: { questionId: true } })
-  ).map((r) => r.questionId);
+  const [usedRounds, candidates] = await Promise.all([
+    db.round.findMany({ where: { sessionId: gameSession.id }, select: { questionId: true } }),
+    db.question.findMany({ where: { level: gameSession.currentLevel } }),
+  ]);
 
-  let candidates = await db.question.findMany({
-    where: { level: gameSession.currentLevel, id: { notIn: usedQuestionIds } },
-  });
-  if (candidates.length === 0) {
-    // niveau épuisé : on repioche dans tout le niveau (permet de rejouer)
-    candidates = await db.question.findMany({ where: { level: gameSession.currentLevel } });
-  }
-  if (candidates.length === 0) {
+  const question = pickUnusedQuestion(
+    candidates,
+    usedRounds.map((round) => round.questionId),
+  );
+  if (!question) {
     return NextResponse.json({ error: "Aucune question disponible pour ce niveau." }, { status: 400 });
   }
 
-  const question = candidates[Math.floor(Math.random() * candidates.length)];
   const round = await db.round.create({
     data: { sessionId: gameSession.id, questionId: question.id, level: gameSession.currentLevel },
   });

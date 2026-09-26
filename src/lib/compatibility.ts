@@ -1,45 +1,72 @@
 import { db } from "@/lib/db";
 
+/** Poids appliqués à chaque palier : plus la question est profonde, plus elle compte. */
+export const LEVEL_WEIGHTS: Record<number, number> = { 1: 1, 2: 1.3, 3: 1.6 };
+
+export function levelWeight(level: number): number {
+  return LEVEL_WEIGHTS[level] ?? 1;
+}
+
+export type RoundScore = {
+  level: number;
+  matched: boolean | null;
+};
+
+export type Score = {
+  percentage: number;
+  totalRounds: number;
+  matchedRounds: number;
+  byLevel: Record<number, number>;
+};
+
+export const EMPTY_SCORE: Score = {
+  percentage: 0,
+  totalRounds: 0,
+  matchedRounds: 0,
+  byLevel: {},
+};
+
 /**
- * Calcule le score de compatibilité d'une session : pourcentage de manches
- * révélées où les deux joueurs ont choisi la même option, pondéré
- * légèrement plus fort pour les niveaux plus profonds.
+ * Calcule le score de compatibilité à partir de manches déjà révélées :
+ * pourcentage pondéré des manches où les deux joueurs ont choisi la même option.
  */
-export async function computeCompatibility(sessionId: string) {
-  const rounds = await db.round.findMany({
-    where: { sessionId, status: "revealed" },
-    select: { level: true, matched: true },
-  });
-
-  if (rounds.length === 0) {
-    return { percentage: 0, totalRounds: 0, matchedRounds: 0, byLevel: {} as Record<number, number> };
-  }
-
-  const weight = (level: number) => (level === 1 ? 1 : level === 2 ? 1.3 : 1.6);
+export function scoreRounds(rounds: RoundScore[]): Score {
+  if (rounds.length === 0) return { ...EMPTY_SCORE, byLevel: {} };
 
   let weightedTotal = 0;
   let weightedMatched = 0;
   const byLevelTotals: Record<number, { total: number; matched: number }> = {};
 
-  for (const r of rounds) {
-    const w = weight(r.level);
-    weightedTotal += w;
-    if (r.matched) weightedMatched += w;
+  for (const round of rounds) {
+    const weight = levelWeight(round.level);
+    weightedTotal += weight;
+    if (round.matched) weightedMatched += weight;
 
-    if (!byLevelTotals[r.level]) byLevelTotals[r.level] = { total: 0, matched: 0 };
-    byLevelTotals[r.level].total += 1;
-    if (r.matched) byLevelTotals[r.level].matched += 1;
+    if (!byLevelTotals[round.level]) byLevelTotals[round.level] = { total: 0, matched: 0 };
+    byLevelTotals[round.level].total += 1;
+    if (round.matched) byLevelTotals[round.level].matched += 1;
   }
 
   const byLevel: Record<number, number> = {};
-  for (const [lvl, v] of Object.entries(byLevelTotals)) {
-    byLevel[Number(lvl)] = Math.round((v.matched / v.total) * 100);
+  for (const [level, value] of Object.entries(byLevelTotals)) {
+    byLevel[Number(level)] = Math.round((value.matched / value.total) * 100);
   }
 
   return {
     percentage: Math.round((weightedMatched / weightedTotal) * 100),
     totalRounds: rounds.length,
-    matchedRounds: rounds.filter((r) => r.matched).length,
+    matchedRounds: rounds.filter((round) => round.matched).length,
     byLevel,
   };
+}
+
+/**
+ * Score d'une session : récupère les manches révélées puis les pondère.
+ */
+export async function computeCompatibility(sessionId: string): Promise<Score> {
+  const rounds = await db.round.findMany({
+    where: { sessionId, status: "revealed" },
+    select: { level: true, matched: true },
+  });
+  return scoreRounds(rounds);
 }

@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-
-const schema = z.object({ roundId: z.string(), choice: z.string().min(1) });
+import { answerSchema } from "@/lib/validation";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,7 +10,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   const userId = (session.user as any).id as string;
 
-  const parsed = schema.safeParse(await req.json());
+  const parsed = answerSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Réponse invalide." }, { status: 400 });
 
   const gameSession = await db.gameSession.findUnique({ where: { id } });

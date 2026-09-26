@@ -1,17 +1,11 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { db } from "@/lib/db";
-
-const schema = z.object({
-  email: z.email(),
-  password: z.string().min(6),
-  displayName: z.string().min(1).max(40),
-});
+import { registerSchema } from "@/lib/validation";
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const parsed = schema.safeParse(body);
+  const parsed = registerSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Champs invalides." }, { status: 400 });
   }

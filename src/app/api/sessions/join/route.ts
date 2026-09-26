@@ -1,20 +1,18 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-
-const schema = z.object({ code: z.string().min(4).max(10) });
+import { joinSchema, normalizeCode } from "@/lib/validation";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
-  const parsed = schema.safeParse(await req.json());
+  const parsed = joinSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Code invalide." }, { status: 400 });
 
   const userId = (session.user as any).id as string;
-  const code = parsed.data.code.toUpperCase();
+  const code = normalizeCode(parsed.data.code);
 
   const gameSession = await db.gameSession.findUnique({ where: { code } });
   if (!gameSession) return NextResponse.json({ error: "Aucune partie avec ce code." }, { status: 404 });
