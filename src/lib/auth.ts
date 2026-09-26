@@ -2,7 +2,8 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
-import { guestSchema } from "@/lib/validation";
+import { guestSchema, normalizeCode } from "@/lib/validation";
+import { canAddMember, duoForCode } from "@/lib/duo";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -13,13 +14,25 @@ export const authOptions: NextAuthOptions = {
       name: "Invité",
       credentials: {
         displayName: { label: "Pseudo", type: "text" },
+        code: { label: "Code", type: "text" },
       },
-      // Auth progressive (§29) : un pseudo suffit pour jouer via un lien.
+      // Auth progressive (§29) : un pseudo + code valide créent un joueur invité.
       // Le compte est créé sans email ni mot de passe (`isGuest`), convertible
       // ensuite via /api/auth/upgrade sans changer d'user.id.
       async authorize(credentials) {
-        const parsed = guestSchema.safeParse({ displayName: credentials?.displayName });
-        if (!parsed.success) return null;
+        const parsed = guestSchema.safeParse({
+          displayName: credentials?.displayName,
+          code: credentials?.code,
+        });
+        if (!parsed.success || !parsed.data.code) return null;
+
+        const code = normalizeCode(parsed.data.code);
+        const duo = await duoForCode(code);
+        if (!duo) return null;
+
+        // Vérifier que le duo a de la place
+        const check = canAddMember(duo.memberUserIds, "placeholder");
+        if (!check.ok) return null;
 
         const user = await db.user.create({
           data: { displayName: parsed.data.displayName, isGuest: true },

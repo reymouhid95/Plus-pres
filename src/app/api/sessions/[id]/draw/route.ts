@@ -7,6 +7,7 @@ import { pickUnusedQuestion } from "@/lib/questions";
 import { levelForRound } from "@/lib/interactions";
 import { canDraw } from "@/lib/session-state";
 import { expiryDate } from "@/lib/timer";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -60,21 +61,30 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   const now = new Date();
-  const [round] = await db.$transaction([
-    db.round.create({
-      data: {
-        sessionId: gameSession.id,
-        questionId: question.id,
-        level,
-        startedAt: now,
-        expiresAt: expiryDate(level, now),
-      },
-    }),
-    db.gameSession.update({
-      where: { id: gameSession.id },
-      data: { currentLevel: level },
-    }),
-  ]);
-
-  return NextResponse.json({ id: round.id });
+  try {
+    const [round] = await db.$transaction([
+      db.round.create({
+        data: {
+          sessionId: gameSession.id,
+          questionId: question.id,
+          level,
+          startedAt: now,
+          expiresAt: expiryDate(level, now),
+        },
+      }),
+      db.gameSession.update({
+        where: { id: gameSession.id },
+        data: { currentLevel: level },
+      }),
+    ]);
+    return NextResponse.json({ id: round.id });
+  } catch (error: unknown) {
+    if (error instanceof PrismaClientKnownRequestError && error.code === "P2002") {
+      return NextResponse.json(
+        { error: "Une carte est déjà en attente de réponses." },
+        { status: 400 },
+      );
+    }
+    throw error;
+  }
 }

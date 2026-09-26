@@ -49,6 +49,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
+  // Valider que le choix fait partie des options de la question
+  const question = await db.question.findUnique({
+    where: { id: round.questionId },
+    select: { options: true },
+  });
+  if (!question || !question.options.includes(parsed.data.choice)) {
+    return NextResponse.json({ error: "Choix invalide pour cette question." }, { status: 400 });
+  }
+
   await db.prediction.create({
     data: { roundId: round.id, userId, choice: parsed.data.choice },
   });

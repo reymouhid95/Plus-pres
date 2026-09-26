@@ -40,9 +40,9 @@ export default function JoinClient({
     setError(null);
     try {
       if (asGuest) {
-        const login = await signIn("guest", { displayName: pseudo.trim(), redirect: false });
+        const login = await signIn("guest", { displayName: pseudo.trim(), code, redirect: false });
         if (login?.error) {
-          setError("Ce pseudo ne convient pas (2 à 30 caractères).");
+          setError("Ce pseudo ne convient pas ou le code est invalide (2 à 30 caractères).");
           setLoading(false);
           return;
         }

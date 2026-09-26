@@ -26,6 +26,7 @@ export const joinSchema = z.object({
 /** Pseudo d'un joueur invité (lien d'invitation, §29). */
 export const guestSchema = z.object({
   displayName: z.string().trim().min(2).max(30),
+  code: z.string().min(4).max(10).optional(),
 });
 
 /** Conversion d'un invité en compte complet (même user.id, §29). */
