@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
-  advanceSession,
   canAnswer,
   canDraw,
+  canInteract,
   canStart,
   clientSessionStatus,
-  MAX_LEVEL,
 } from "./session-state";
 
 describe("canDraw", () => {
@@ -15,6 +14,8 @@ describe("canDraw", () => {
     turnUserId: "u1",
     userId: "u1",
     hasPendingRound: false,
+    played: 0,
+    maxRounds: 6,
   };
 
   it("autorise le tirage quand tout est réuni", () => {
@@ -39,6 +40,14 @@ describe("canDraw", () => {
 
   it("refuse quand la partie est terminée", () => {
     expect(canDraw({ ...base, sessionStatus: "completed" }).ok).toBe(false);
+  });
+
+  it("refuse quand le quota de cartes est atteint", () => {
+    expect(canDraw({ ...base, played: 6 })).toEqual({
+      ok: false,
+      error: "Session terminée — place au bilan.",
+      status: 400,
+    });
   });
 
   it("refuse quand ce n'est pas son tour", () => {
@@ -90,14 +99,17 @@ describe("canStart", () => {
   });
 });
 
-describe("advanceSession", () => {
-  it("monte d'un niveau tant que le max n'est pas atteint", () => {
-    expect(advanceSession(1)).toEqual({ nextLevel: 2, status: "playing" });
-    expect(advanceSession(2)).toEqual({ nextLevel: 3, status: "playing" });
+describe("canInteract", () => {
+  it("autorise réactions et conversations après la révélation", () => {
+    expect(canInteract({ roundStatus: "revealed" })).toEqual({ ok: true });
   });
 
-  it("termine la partie au dernier niveau", () => {
-    expect(advanceSession(MAX_LEVEL)).toEqual({ nextLevel: MAX_LEVEL, status: "completed" });
+  it("refuse avant la révélation", () => {
+    expect(canInteract({ roundStatus: "pending" })).toEqual({
+      ok: false,
+      error: "Cette manche n'est pas encore révélée.",
+      status: 400,
+    });
   });
 });
 

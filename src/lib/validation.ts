@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DISCUSSION_TYPES, MOTIVATIONS, REACTION_EMOJIS } from "./interactions";
 
 export const registerSchema = z.object({
   email: z.email(),
@@ -34,12 +35,42 @@ export const upgradeSchema = z.object({
   displayName: z.string().min(1).max(40).optional(),
 });
 
+/** Réaction rapide après une révélation (§19). */
+export const reactSchema = z.object({
+  roundId: z.string().min(1),
+  emoji: z.enum(REACTION_EMOJIS),
+});
+
+/** Action de conversation après une divergence (§20, §21). */
+export const discussSchema = z
+  .object({
+    roundId: z.string().min(1),
+    type: z.enum([
+      DISCUSSION_TYPES.POURQUOI,
+      DISCUSSION_TYPES.DEFENDRE,
+      DISCUSSION_TYPES.COMPROMIS,
+      DISCUSSION_TYPES.MOTIVATION,
+    ]),
+    content: z.string().max(40).optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.type === DISCUSSION_TYPES.MOTIVATION && !(MOTIVATIONS as readonly string[]).includes(value.content ?? "")) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Motivation invalide.",
+        path: ["content"],
+      });
+    }
+  });
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ProfileInput = z.infer<typeof profileSchema>;
 export type AnswerInput = z.infer<typeof answerSchema>;
 export type JoinInput = z.infer<typeof joinSchema>;
 export type GuestInput = z.infer<typeof guestSchema>;
 export type UpgradeInput = z.infer<typeof upgradeSchema>;
+export type ReactInput = z.infer<typeof reactSchema>;
+export type DiscussInput = z.infer<typeof discussSchema>;
 
 export function normalizeCode(raw: string): string {
   return raw.trim().toUpperCase();

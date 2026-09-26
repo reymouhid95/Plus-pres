@@ -57,15 +57,21 @@ Contrat client inchangé (`{ id }` au join, `GameState` identique).
 - [x] e2e : parcours invité complet (lien → pseudo → jeu → conversion → reconnexion, historique conservé)
 - [x] Validation : `typecheck` + 74 tests + `build` + 10 e2e verts
 
-## Phase C — Boucle cœur (§17, §19, §20, §21, §22, §43)
+## Phase C — Boucle cœur (§17, §19, §20, §21, §22, §43) (TERMINÉE)
 
-- [ ] Reveal §17 : « ❤️ Vous êtes alignés » / « ✨ Vous avez choisi différemment » (plus de rouge-échec, §43.3)
-- [ ] Réactions §19 : ❤️ 😂 😮 👀 🔥 🤔 (modèle `Reaction`, SSE)
-- [ ] Conversation §20 : `[Pourquoi ce choix ?]` `[Défendre mon choix]` `[Trouver un compromis]` `[Continuer]` (modèle `Discussion`)
-- [ ] Motivations §21 (options de justification)
-- [ ] **Masquer le score pendant la partie** (§43.2)
-- [ ] Résultats §22 : points communs / différences / prédictions / conversations / surprises
-- [ ] Session 5–7 cartes §13 (+ rematch sur le même duo, §44)
+- [x] Reveal §17 : « ❤️ Vous êtes alignés » / « ✨ Vous avez choisi différemment » (neutre, §43.3)
+- [x] Réactions §19 : ❤️ 😂 😮 👀 🔥 🤔 (modèle `Reaction`, upsert, SSE)
+- [x] Conversation §20 : `[Pourquoi ce choix ?]` `[Défendre mon choix]` `[Trouver un compromis]` `[Continuer]` (modèle `Discussion`, sans chat libre — SHOULD HAVE)
+- [x] Motivations §21 : liste générique du cahier (Travail, Culture…), stockée sur la discussion
+- [x] **Score masqué pendant la partie** (§43.2)
+- [x] Résultats §22 : points communs / différences / conversations / réactions (« Bien deviné » et « Surprises » arrivent avec la Phase D)
+- [x] Session 6 cartes §13 (2 par palier, niveau auto, fin auto) + rematch sur le même duo, même code (§44)
+- [x] Migration **additive** `20260926140000_reactions_discussions` (à appliquer sur Neon, sans interruption)
+- [x] e2e : session complète 6 cartes (réactions croisées, motivation Culture, bilan 4/2/1/2, rematch même code)
+- [x] Validation : `typecheck` + 84 tests + `build` + 11 e2e verts
+
+Note : route `/level` et avancement manuel supprimés (remplacés par la progression auto).
+Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 
 ## Phase D — Devine ma réponse (§12.2, §18, §42)
 

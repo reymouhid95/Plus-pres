@@ -29,13 +29,15 @@ export type Guard = { ok: true } | { ok: false; error: string; status: 400 | 403
 
 const deny = (error: string, status: 400 | 403 = 400): Guard => ({ ok: false, error, status });
 
-/** Tirer une carte : duo prêt, partie en cours, à son tour, aucune carte en attente. */
+/** Tirer une carte : duo prêt, partie en cours, quota non atteint, à son tour. */
 export function canDraw(input: {
   duoStatus: string;
   sessionStatus: string;
   turnUserId: string | null;
   userId: string;
   hasPendingRound: boolean;
+  played: number;
+  maxRounds: number;
 }): Guard {
   if (input.duoStatus !== "ready") {
     return deny("La partie n'est pas encore active (en attente du partenaire).");
@@ -45,6 +47,9 @@ export function canDraw(input: {
   }
   if (input.sessionStatus !== SESSION_STATUS.PLAYING) {
     return deny("Cette partie est terminée.");
+  }
+  if (input.played >= input.maxRounds) {
+    return deny("Session terminée — place au bilan.");
   }
   if (input.turnUserId !== input.userId) {
     return deny("Ce n'est pas votre tour de tirer une carte.", 403);
@@ -69,6 +74,14 @@ export function canAnswer(input: { roundStatus: string; alreadyAnswered: boolean
   return { ok: true };
 }
 
+/** Réagir ou ouvrir une conversation : manche révélée (§19, §20). */
+export function canInteract(input: { roundStatus: string }): Guard {
+  if (input.roundStatus !== ROUND_STATUS.REVEALED) {
+    return deny("Cette manche n'est pas encore révélée.");
+  }
+  return { ok: true };
+}
+
 /** Démarrer une expérience depuis le lobby (§11) : duo prêt, pas encore lancée. */
 export function canStart(input: { duoStatus: string; sessionStatus: string }): Guard {
   if (input.duoStatus !== "ready") {
@@ -78,17 +91,6 @@ export function canStart(input: { duoStatus: string; sessionStatus: string }): G
     return deny("Cette partie a déjà commencé.");
   }
   return { ok: true };
-}
-
-/** Passage au niveau suivant ou fin de partie (NEXT_ROUND → COMPLETED). */
-export function advanceSession(currentLevel: number): {
-  nextLevel: number;
-  status: "playing" | "completed";
-} {
-  if (currentLevel >= MAX_LEVEL) {
-    return { nextLevel: MAX_LEVEL, status: SESSION_STATUS.COMPLETED };
-  }
-  return { nextLevel: currentLevel + 1, status: SESSION_STATUS.PLAYING };
 }
 
 /**

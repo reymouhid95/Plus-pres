@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   answerSchema,
+  discussSchema,
   guestSchema,
   joinSchema,
   normalizeCode,
   profileSchema,
+  reactSchema,
   registerSchema,
   upgradeSchema,
 } from "./validation";
@@ -94,5 +96,38 @@ describe("upgradeSchema", () => {
     expect(
       upgradeSchema.safeParse({ email: "sarah@exemple.fr", password: "court" }).success,
     ).toBe(false);
+  });
+});
+
+describe("reactSchema", () => {
+  it("accepte un emoji de la liste", () => {
+    expect(reactSchema.safeParse({ roundId: "r1", emoji: "🔥" }).success).toBe(true);
+    expect(reactSchema.safeParse({ roundId: "r1", emoji: "💩" }).success).toBe(false);
+    expect(reactSchema.safeParse({ roundId: "", emoji: "❤️" }).success).toBe(false);
+  });
+});
+
+describe("discussSchema", () => {
+  it("accepte les trois actions sans contenu", () => {
+    for (const type of ["pourquoi", "defendre", "compromis"] as const) {
+      expect(discussSchema.safeParse({ roundId: "r1", type }).success).toBe(true);
+    }
+    expect(
+      discussSchema.safeParse({ roundId: "r1", type: "dispute" }).success,
+    ).toBe(false);
+  });
+
+  it("exige une motivation valide pour le type motivation", () => {
+    expect(
+      discussSchema.safeParse({ roundId: "r1", type: "motivation", content: "Culture" })
+        .success,
+    ).toBe(true);
+    expect(
+      discussSchema.safeParse({ roundId: "r1", type: "motivation", content: "Hasard" })
+        .success,
+    ).toBe(false);
+    expect(discussSchema.safeParse({ roundId: "r1", type: "motivation" }).success).toBe(
+      false,
+    );
   });
 });

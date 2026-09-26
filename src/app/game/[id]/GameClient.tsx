@@ -2,27 +2,34 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   Check,
-  ChevronRight,
   ClipboardCopy,
+  Heart,
   Hourglass,
   Link2,
   ListChecks,
+  MessageCircleHeart,
   PartyPopper,
   Play,
   RefreshCw,
+  Sparkles,
   Timer,
   Users,
-  X,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toaster";
 import { Skeleton } from "@/components/ui/Skeleton";
-import ProgressRing from "@/components/ui/ProgressRing";
 import Logo from "@/components/Logo";
 import { remainingMs } from "@/lib/timer";
 import { levelMeta } from "@/lib/levels";
+import {
+  DISCUSSION_TYPES,
+  MOTIVATIONS,
+  OPENER_LABELS,
+  REACTION_EMOJIS,
+} from "@/lib/interactions";
 
 type RoundState = {
   id: string;
@@ -35,13 +42,18 @@ type RoundState = {
   myAnswer: string | null;
   partnerAnswered: boolean;
   answers: { userId: string; choice: string }[];
+  reactions: { userId: string; emoji: string }[];
+  discussions: { userId: string; type: string; content: string | null }[];
 };
 
 type SessionState = {
   id: string;
   code: string;
+  duoId: string;
   status: "waiting" | "lobby" | "active" | "completed";
   currentLevel: number;
+  maxRounds: number;
+  roundsPlayed: number;
   turnUserId: string | null;
   host: { id: string; displayName: string; avatarEmoji: string };
   partner: { id: string; displayName: string; avatarEmoji: string } | null;
@@ -52,18 +64,28 @@ type SessionState = {
     matchedRounds: number;
     byLevel: Record<number, number>;
   };
+  results: {
+    matched: number;
+    mismatched: number;
+    conversations: number;
+    reactions: number;
+  };
   /** Horodatage serveur : sert à corriger l'horloge locale du navigateur. */
   serverNow: number;
 };
 
 export default function GameClient({ sessionId, userId }: { sessionId: string; userId: string }) {
+  const router = useRouter();
   const [state, setState] = useState<SessionState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [answering, setAnswering] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [rematching, setRematching] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showMotivations, setShowMotivations] = useState(false);
+  const [closedRoundId, setClosedRoundId] = useState<string | null>(null);
   const [, forceTick] = useState(0);
 
   const fetchState = useCallback(async () => {
@@ -149,6 +171,12 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     prevPartnerId.current = observedPartnerId;
   }, [observedPartnerId, observedPartnerName]);
 
+  // Nouvel écran de motivations à chaque manche.
+  const currentRoundId = state?.currentRound?.id ?? null;
+  useEffect(() => {
+    setShowMotivations(false);
+  }, [currentRoundId]);
+
   if (!state) {
     return (
       <main className="mx-auto w-full max-w-md flex-1 px-5 py-10">
@@ -165,6 +193,15 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const meta = levelMeta(state.currentLevel);
   const round = state.currentRound;
   const gameCode = state.code;
+  const myReaction = round?.reactions.find((entry) => entry.userId === userId)?.emoji ?? null;
+  const partnerReaction =
+    round?.reactions.find((entry) => entry.userId !== userId)?.emoji ?? null;
+  const myDiscussion = round?.discussions.find((entry) => entry.userId === userId) ?? null;
+  const partnerDiscussion =
+    round?.discussions.find((entry) => entry.userId !== userId) ?? null;
+  const openersOpen = Boolean(
+    round && round.status === "revealed" && !round.matched && round.id !== closedRoundId && !myDiscussion,
+  );
   // Écart entre l'horloge serveur et celle du navigateur, recalculé à chaque
   // état reçu : le minuteur reste juste même si l'appareil est décalé.
   const clockSkew = state.serverNow - Date.now();
@@ -206,9 +243,54 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     fetchState();
   }
 
-  async function nextLevel() {
-    await fetch(`/api/sessions/${sessionId}/level`, { method: "POST" });
+  async function react(emoji: string) {
+    if (!round) return;
+    const res = await fetch(`/api/sessions/${sessionId}/react`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roundId: round.id, emoji }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      toast(data.error ?? "Réaction impossible.", "error");
+      return;
+    }
     fetchState();
+  }
+
+  async function discuss(type: string, content?: string) {
+    if (!round) return;
+    const res = await fetch(`/api/sessions/${sessionId}/discuss`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roundId: round.id, type, content }),
+    });
+    if (!res.ok) {
+      const data = await res.json();
+      toast(data.error ?? "Action impossible.", "error");
+      return;
+    }
+    setShowMotivations(false);
+    fetchState();
+  }
+
+  async function rematch() {
+    if (!state) return;
+    setRematching(true);
+    setError(null);
+    const res = await fetch("/api/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ duoId: state.duoId }),
+    });
+    const data = await res.json();
+    setRematching(false);
+    if (!res.ok) {
+      setError(data.error);
+      toast(data.error ?? "Nouvelle partie impossible.", "error");
+      return;
+    }
+    router.push(`/game/${data.id}`);
   }
 
   async function copyCode() {
@@ -400,16 +482,51 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
           <h1 className="mt-5 font-display text-3xl font-semibold text-fg">Partie terminée</h1>
           <p className="mt-1.5 text-sm text-muted">avec {partner?.avatarEmoji} {partnerName}</p>
 
-          <div className="card mt-7 flex w-full flex-col items-center gap-5 p-7">
-            <ProgressRing value={state.compatibility.percentage} size={132} stroke={11} />
-            <p className="text-sm text-muted">
-              <span className="font-semibold text-fg">{state.compatibility.matchedRounds}</span>{" "}
-              alignements sur{" "}
-              <span className="font-semibold text-fg">{state.compatibility.totalRounds}</span>{" "}
-              questions
-            </p>
+          <div className="card mt-7 w-full p-6 text-left" data-testid="results">
+            <p className="text-xs uppercase tracking-[0.16em] text-muted">Vous avez découvert</p>
+            <dl className="mt-4 space-y-3.5">
+              <div className="flex items-center justify-between gap-3" data-testid="result-common">
+                <dt className="flex items-center gap-2 text-sm text-fg">
+                  <Heart className="size-4 text-accent" />
+                  Points communs
+                </dt>
+                <dd className="font-display text-xl font-semibold tabular-nums text-fg">
+                  {state.results.matched}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3" data-testid="result-different">
+                <dt className="flex items-center gap-2 text-sm text-fg">
+                  <Sparkles className="size-4 text-gold" />
+                  Différences
+                </dt>
+                <dd className="font-display text-xl font-semibold tabular-nums text-fg">
+                  {state.results.mismatched}
+                </dd>
+              </div>
+              <div
+                className="flex items-center justify-between gap-3"
+                data-testid="result-conversations"
+              >
+                <dt className="flex items-center gap-2 text-sm text-fg">
+                  <MessageCircleHeart className="size-4 text-sage" />
+                  Conversations ouvertes
+                </dt>
+                <dd className="font-display text-xl font-semibold tabular-nums text-fg">
+                  {state.results.conversations}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3" data-testid="result-reactions">
+                <dt className="flex items-center gap-2 text-sm text-fg">
+                  <Users className="size-4 text-muted" />
+                  Réactions échangées
+                </dt>
+                <dd className="font-display text-xl font-semibold tabular-nums text-fg">
+                  {state.results.reactions}
+                </dd>
+              </div>
+            </dl>
 
-            <div className="w-full space-y-3">
+            <div className="mt-5 space-y-3 border-t border-line pt-5">
               {Object.entries(state.compatibility.byLevel).map(([level, pct]) => {
                 const barMeta = levelMeta(Number(level));
                 return (
@@ -431,9 +548,24 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
           </div>
 
           <div className="mt-6 flex w-full flex-col gap-3">
-            <button type="button" onClick={nextLevel} className="btn btn-primary btn-block">
-              <RefreshCw className="size-4" />
-              Rejouer une manche
+            <button
+              type="button"
+              onClick={rematch}
+              disabled={rematching}
+              data-testid="rematch"
+              className="btn btn-primary btn-block disabled:opacity-60"
+            >
+              {rematching ? (
+                <>
+                  <RefreshCw className="size-4 animate-spin" />
+                  Création…
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="size-4" />
+                  Rejouer avec {partnerName}
+                </>
+              )}
             </button>
             <Link href="/dashboard" className="btn btn-secondary btn-block">
               Retour aux parties
@@ -510,7 +642,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
 
             <p
               data-testid="reveal-result"
-              className={`mt-4 font-display text-2xl font-semibold ${round.matched ? "text-sage" : "text-accent"}`}
+              className={`mt-4 font-display text-2xl font-semibold ${round.matched ? "text-sage" : "text-fg"}`}
             >
               {round.matched ? (
                 <span className="inline-flex items-center gap-2">
@@ -518,7 +650,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
-                  <X className="size-6" /> Réponses différentes
+                  <Sparkles className="size-6 text-gold" /> Vous avez choisi différemment.
                 </span>
               )}
             </p>
@@ -536,6 +668,128 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 );
               })}
             </div>
+
+            {/* Réactions rapides (§19) */}
+            <div className="mt-6 border-t border-line pt-5">
+              <p className="text-xs uppercase tracking-[0.16em] text-muted">Réagir</p>
+              <div className="mt-2.5 flex items-center justify-center gap-1.5">
+                {REACTION_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    data-testid={`reaction-${emoji}`}
+                    onClick={() => react(emoji)}
+                    aria-label={`Réagir ${emoji}`}
+                    className={`grid size-11 place-items-center rounded-2xl border text-xl transition hover:scale-105 ${
+                      myReaction === emoji
+                        ? "border-accent/60 bg-accent/10"
+                        : "border-line bg-canvas/60"
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+              {partnerReaction && (
+                <p data-testid="partner-reaction" className="mt-2.5 text-sm text-muted">
+                  {partnerName} a réagi {partnerReaction}
+                </p>
+              )}
+            </div>
+
+            {/* Conversation après une divergence (§20, §21) */}
+            {!round.matched && (
+              <div className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4">
+                {myDiscussion || partnerDiscussion ? (
+                  <div data-testid="discussion" className="flex flex-col gap-1.5 text-sm">
+                    {myDiscussion && (
+                      <p>
+                        <span className="font-medium text-fg">Vous : </span>
+                        <span className="text-muted">
+                          {OPENER_LABELS[myDiscussion.type] ?? myDiscussion.type}
+                          {myDiscussion.content ? ` · ${myDiscussion.content}` : ""}
+                        </span>
+                      </p>
+                    )}
+                    {partnerDiscussion && (
+                      <p>
+                        <span className="font-medium text-fg">{partnerName} : </span>
+                        <span className="text-muted">
+                          {OPENER_LABELS[partnerDiscussion.type] ?? partnerDiscussion.type}
+                          {partnerDiscussion.content ? ` · ${partnerDiscussion.content}` : ""}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+                ) : openersOpen && !showMotivations ? (
+                  <>
+                    <p className="text-sm font-medium text-fg">
+                      Vous avez choisi différemment. Pourquoi&nbsp;?
+                    </p>
+                    <div className="mt-3 grid grid-cols-1 gap-2">
+                      <button
+                        type="button"
+                        data-testid="opener-pourquoi"
+                        onClick={() => setShowMotivations(true)}
+                        className="btn btn-secondary btn-sm justify-start"
+                      >
+                        Pourquoi ce choix&nbsp;?
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="opener-defendre"
+                        onClick={() => discuss(DISCUSSION_TYPES.DEFENDRE)}
+                        className="btn btn-secondary btn-sm justify-start"
+                      >
+                        Défendre mon choix
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="opener-compromis"
+                        onClick={() => discuss(DISCUSSION_TYPES.COMPROMIS)}
+                        className="btn btn-secondary btn-sm justify-start"
+                      >
+                        Trouver un compromis
+                      </button>
+                      <button
+                        type="button"
+                        data-testid="opener-continuer"
+                        onClick={() => setClosedRoundId(round.id)}
+                        className="btn btn-ghost btn-sm"
+                      >
+                        Continuer
+                      </button>
+                    </div>
+                  </>
+                ) : openersOpen ? (
+                  <>
+                    <p className="text-sm font-medium text-fg">
+                      Qu&apos;est-ce qui a guidé ton choix&nbsp;?
+                    </p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      {MOTIVATIONS.map((motivation) => (
+                        <button
+                          key={motivation}
+                          type="button"
+                          data-testid={`motivation-${motivation}`}
+                          onClick={() => discuss(DISCUSSION_TYPES.MOTIVATION, motivation)}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          {motivation}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowMotivations(false)}
+                      className="mt-2 text-xs text-muted underline decoration-line underline-offset-4 transition hover:text-fg"
+                    >
+                      Retour
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            )}
           </div>
         )}
 
@@ -611,6 +865,9 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
         {/* Tirage / attente */}
         {!round || round.status === "revealed" ? (
           <div className="card mt-4 flex flex-col items-center px-6 py-8 text-center">
+            <p data-testid="progress" className="mb-5 text-xs uppercase tracking-[0.16em] text-muted">
+              Carte {Math.min(state.roundsPlayed + 1, state.maxRounds)} / {state.maxRounds}
+            </p>
             {state.currentRound?.status === "revealed" && (
               <p className="mb-5 text-xs uppercase tracking-[0.16em] text-muted">
                 Prochaine manche
@@ -657,29 +914,8 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
               </div>
             )}
 
-            {state.compatibility.totalRounds > 0 && (
-              <button
-                type="button"
-                onClick={nextLevel}
-                className="mt-5 inline-flex items-center gap-1.5 text-sm text-muted underline decoration-line underline-offset-4 transition hover:text-fg"
-              >
-                {state.currentLevel === 3 ? "Terminer la partie" : "Passer au niveau suivant"}
-                <ChevronRight className="size-4" />
-              </button>
-            )}
           </div>
         ) : null}
-      </section>
-
-      {/* Score en cours */}
-      <section className="card mt-4 flex items-center justify-between px-5 py-4" data-testid="compatibility">
-        <div>
-          <p className="text-xs uppercase tracking-[0.16em] text-muted">Compatibilité</p>
-          <p className="mt-0.5 text-sm text-muted">
-            {state.compatibility.matchedRounds} / {state.compatibility.totalRounds} alignées
-          </p>
-        </div>
-        <ProgressRing value={state.compatibility.percentage} size={58} stroke={6} color={meta.color} />
       </section>
 
       {error && (

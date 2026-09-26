@@ -61,6 +61,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       data: { turnUserId: nextTurnUserId },
     });
 
+    // Dernière carte de la session : place au bilan (§13, §22).
+    const revealedCount = await db.round.count({
+      where: { sessionId: gameSession.id, status: "revealed" },
+    });
+    if (revealedCount >= gameSession.maxRounds) {
+      await db.gameSession.update({
+        where: { id: gameSession.id },
+        data: { status: "completed" },
+      });
+    }
+
     return NextResponse.json({ status: "revealed", matched });
   }
 
