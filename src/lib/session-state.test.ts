@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { advanceSession, canAnswer, canDraw, clientSessionStatus, MAX_LEVEL } from "./session-state";
+import {
+  advanceSession,
+  canAnswer,
+  canDraw,
+  canStart,
+  clientSessionStatus,
+  MAX_LEVEL,
+} from "./session-state";
 
 describe("canDraw", () => {
   const base = {
@@ -18,6 +25,14 @@ describe("canDraw", () => {
     expect(canDraw({ ...base, duoStatus: "pending" })).toEqual({
       ok: false,
       error: "La partie n'est pas encore active (en attente du partenaire).",
+      status: 400,
+    });
+  });
+
+  it("refuse quand la partie est encore au lobby", () => {
+    expect(canDraw({ ...base, sessionStatus: "lobby" })).toEqual({
+      ok: false,
+      error: "La partie n'a pas encore commencé — lancez-la depuis le lobby.",
       status: 400,
     });
   });
@@ -57,6 +72,24 @@ describe("canAnswer", () => {
   });
 });
 
+describe("canStart", () => {
+  it("autorise le démarrage quand le duo est prêt et la session au lobby", () => {
+    expect(canStart({ duoStatus: "ready", sessionStatus: "lobby" })).toEqual({ ok: true });
+  });
+
+  it("refuse tant que le partenaire n'a pas rejoint", () => {
+    expect(canStart({ duoStatus: "pending", sessionStatus: "lobby" })).toEqual({
+      ok: false,
+      error: "En attente du partenaire pour commencer.",
+      status: 400,
+    });
+  });
+
+  it("refuse quand la partie est déjà lancée", () => {
+    expect(canStart({ duoStatus: "ready", sessionStatus: "playing" }).ok).toBe(false);
+  });
+});
+
 describe("advanceSession", () => {
   it("monte d'un niveau tant que le max n'est pas atteint", () => {
     expect(advanceSession(1)).toEqual({ nextLevel: 2, status: "playing" });
@@ -69,8 +102,9 @@ describe("advanceSession", () => {
 });
 
 describe("clientSessionStatus", () => {
-  it("dérive waiting / active / completed pour le client existant", () => {
-    expect(clientSessionStatus("pending", "playing")).toBe("waiting");
+  it("dérive waiting / lobby / active / completed pour le client", () => {
+    expect(clientSessionStatus("pending", "lobby")).toBe("waiting");
+    expect(clientSessionStatus("ready", "lobby")).toBe("lobby");
     expect(clientSessionStatus("ready", "playing")).toBe("active");
     expect(clientSessionStatus("ready", "completed")).toBe("completed");
   });

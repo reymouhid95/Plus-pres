@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   answerSchema,
+  guestSchema,
   joinSchema,
   normalizeCode,
   profileSchema,
   registerSchema,
+  upgradeSchema,
 } from "./validation";
 
 describe("registerSchema", () => {
@@ -60,5 +62,37 @@ describe("normalizeCode", () => {
   it("met le code en majuscules et retire les espaces", () => {
     expect(normalizeCode("  aB12 ")).toBe("AB12");
     expect(normalizeCode("wSDWqK")).toBe("WSDWQK");
+  });
+});
+
+describe("guestSchema", () => {
+  it("accepte un pseudo de 2 à 30 caractères", () => {
+    expect(guestSchema.safeParse({ displayName: "Sarah" }).success).toBe(true);
+    expect(guestSchema.safeParse({ displayName: " A " }).success).toBe(false);
+    expect(guestSchema.safeParse({ displayName: "A".repeat(31) }).success).toBe(false);
+    expect(guestSchema.safeParse({ displayName: "" }).success).toBe(false);
+  });
+
+  it("retire les espaces autour du pseudo", () => {
+    expect(guestSchema.safeParse({ displayName: "  Sarah  " }).data).toEqual({
+      displayName: "Sarah",
+    });
+  });
+});
+
+describe("upgradeSchema", () => {
+  it("accepte une conversion valide", () => {
+    expect(
+      upgradeSchema.safeParse({ email: "sarah@exemple.fr", password: "secret12" }).success,
+    ).toBe(true);
+  });
+
+  it("refuse un email mal formé ou un mot de passe trop court", () => {
+    expect(
+      upgradeSchema.safeParse({ email: "pas-un-email", password: "secret12" }).success,
+    ).toBe(false);
+    expect(
+      upgradeSchema.safeParse({ email: "sarah@exemple.fr", password: "court" }).success,
+    ).toBe(false);
   });
 });

@@ -35,6 +35,12 @@ test.describe("Partie", () => {
 
       await expect(pageA.getByText("avec Bob")).toBeVisible({ timeout: 30_000 });
 
+      // Lobby : les deux joueurs sont prêts, Alice démarre l'expérience.
+      await expect(pageA.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });
+      await expect(pageA.getByText("Les deux joueurs sont prêts.")).toBeVisible();
+      await expect(pageB.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });
+      await pageA.getByTestId("start-session").click();
+
       // Le tirage revient à Alice (elle a créé la partie).
       const draw = pageA.getByTestId("draw");
       await expect(draw).toBeVisible({ timeout: 30_000 });

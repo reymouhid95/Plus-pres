@@ -10,7 +10,11 @@
  * Le serveur est responsable des transitions : chaque route interroge ces
  * gardes au lieu de vérifier les états à la main.
  */
-export const SESSION_STATUS = { PLAYING: "playing", COMPLETED: "completed" } as const;
+export const SESSION_STATUS = {
+  LOBBY: "lobby",
+  PLAYING: "playing",
+  COMPLETED: "completed",
+} as const;
 
 export const ROUND_STATUS = {
   PENDING: "pending",
@@ -35,6 +39,9 @@ export function canDraw(input: {
 }): Guard {
   if (input.duoStatus !== "ready") {
     return deny("La partie n'est pas encore active (en attente du partenaire).");
+  }
+  if (input.sessionStatus === SESSION_STATUS.LOBBY) {
+    return deny("La partie n'a pas encore commencé — lancez-la depuis le lobby.");
   }
   if (input.sessionStatus !== SESSION_STATUS.PLAYING) {
     return deny("Cette partie est terminée.");
@@ -62,6 +69,17 @@ export function canAnswer(input: { roundStatus: string; alreadyAnswered: boolean
   return { ok: true };
 }
 
+/** Démarrer une expérience depuis le lobby (§11) : duo prêt, pas encore lancée. */
+export function canStart(input: { duoStatus: string; sessionStatus: string }): Guard {
+  if (input.duoStatus !== "ready") {
+    return deny("En attente du partenaire pour commencer.");
+  }
+  if (input.sessionStatus !== SESSION_STATUS.LOBBY) {
+    return deny("Cette partie a déjà commencé.");
+  }
+  return { ok: true };
+}
+
 /** Passage au niveau suivant ou fin de partie (NEXT_ROUND → COMPLETED). */
 export function advanceSession(currentLevel: number): {
   nextLevel: number;
@@ -80,8 +98,9 @@ export function advanceSession(currentLevel: number): {
 export function clientSessionStatus(
   duoStatus: string,
   sessionStatus: string,
-): "waiting" | "active" | "completed" {
+): "waiting" | "lobby" | "active" | "completed" {
   if (duoStatus !== "ready") return "waiting";
+  if (sessionStatus === SESSION_STATUS.LOBBY) return "lobby";
   if (sessionStatus === SESSION_STATUS.COMPLETED) return "completed";
   return "active";
 }

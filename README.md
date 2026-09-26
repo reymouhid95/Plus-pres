@@ -113,6 +113,10 @@ par le workflow.
    `src/lib/session-state.ts`), contrat client inchangé.
    ⚠️ Migration `20260926120000_duo_model` **destructive** (`hostId`/`partnerId`/
    `code` retirés) : à appliquer sur Neon via `prisma migrate deploy`
-5. **Lien d'invitation + auth progressive (Phase B)** — `/join/[CODE]`, pseudo
-   invité, conversion de compte, lobby §11, repositionnement landing §7.1
+5. **Lien d'invitation + auth progressive (Phase B)** — fait : `/join/[CODE]`
+   (pseudo invité sans compte, cas membre connecté / déjà-membre / duo complet),
+   provider next-auth `guest`, `POST /api/auth/upgrade` (même `user.id`),
+   lobby §11 (joueurs, toast « X vient de rejoindre », bouton Commencer, statut
+   session `lobby` + route `start`), landing §7.1 (CTA « Commencer une expérience
+   à deux »)
 6. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions

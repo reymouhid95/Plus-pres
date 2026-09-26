@@ -48,13 +48,14 @@ Contrat client inchangé (`{ id }` au join, `GameState` identique).
 
 ---
 
-## Phase B — Duo & accès (§5.1, §9, §10, §11, §29, §40)
+## Phase B — Duo & accès (§5.1, §9, §10, §11, §29, §40) (TERMINÉE)
 
-- [ ] Page `/join/[CODE]` : pseudo → rejoindre → lobby (sans compte)
-- [ ] Auth progressive : provider invité next-auth, `POST /api/auth/upgrade` (email+mot de passe sur le même `user.id`, historique conservé)
-- [ ] Lobby §11 : les deux joueurs, statut, « X vient de rejoindre » via SSE, bouton Commencer
-- [ ] Positionnement landing §7.1 : CTA « Commencer une expérience à deux », plus de « test de compatibilité »
-- [ ] e2e : parcours invité complet (lien → pseudo → jeu → conversion)
+- [x] Page `/join/[CODE]` : pseudo → rejoindre → lobby (sans compte)
+- [x] Auth progressive : provider invité next-auth, `POST /api/auth/upgrade` (email+mot de passe sur le même `user.id`, historique conservé)
+- [x] Lobby §11 : les deux joueurs, « X vient de rejoindre » via SSE, bouton Commencer (statut session `lobby`, route `start`, tirage bloqué avant démarrage)
+- [x] Positionnement landing §7.1 : CTA « Commencer une expérience à deux », plus de cadrage « test de compatibilité »
+- [x] e2e : parcours invité complet (lien → pseudo → jeu → conversion → reconnexion, historique conservé)
+- [x] Validation : `typecheck` + 74 tests + `build` + 10 e2e verts
 
 ## Phase C — Boucle cœur (§17, §19, §20, §21, §22, §43)
 

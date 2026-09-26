@@ -25,6 +25,9 @@ test.describe("Historique", () => {
       await pageB.waitForURL(/\/game\//);
       await expect(pageA.getByText("avec Bob")).toBeVisible({ timeout: 30_000 });
 
+      await expect(pageA.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });
+      await pageA.getByTestId("start-session").click();
+
       await pageA.getByTestId("draw").click();
       await expect(pageA.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
       await pageA.getByTestId("answer-option").first().click();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -8,11 +8,13 @@ import {
   ChevronRight,
   ClipboardCopy,
   Hourglass,
+  Link2,
   ListChecks,
   PartyPopper,
   Play,
   RefreshCw,
   Timer,
+  Users,
   X,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toaster";
@@ -38,7 +40,7 @@ type RoundState = {
 type SessionState = {
   id: string;
   code: string;
-  status: "waiting" | "active" | "completed";
+  status: "waiting" | "lobby" | "active" | "completed";
   currentLevel: number;
   turnUserId: string | null;
   host: { id: string; displayName: string; avatarEmoji: string };
@@ -59,7 +61,9 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const [error, setError] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [answering, setAnswering] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [, forceTick] = useState(0);
 
   const fetchState = useCallback(async () => {
@@ -121,6 +125,29 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
       if (poll) clearInterval(poll);
     };
   }, [fetchState, sessionId]);
+
+  // « X vient de rejoindre votre expérience » (§10) : l'autre joueur apparaît
+  // dans l'état poussé par le SSE. Pas de toast au premier chargement.
+  const observedPartnerId = state
+    ? ((state.host.id === userId ? state.partner?.id : state.host.id) ?? null)
+    : null;
+  const observedPartnerName = state
+    ? ((state.host.id === userId ? state.partner?.displayName : state.host.displayName) ?? null)
+    : null;
+  const prevPartnerId = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (prevPartnerId.current === undefined) {
+      prevPartnerId.current = observedPartnerId;
+      return;
+    }
+    if (observedPartnerId && observedPartnerId !== prevPartnerId.current) {
+      toast(
+        `${observedPartnerName ?? "Votre partenaire"} vient de rejoindre votre expérience 🎉`,
+        "success",
+      );
+    }
+    prevPartnerId.current = observedPartnerId;
+  }, [observedPartnerId, observedPartnerName]);
 
   if (!state) {
     return (
@@ -195,6 +222,33 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     }
   }
 
+  const inviteLink = `${window.location.origin}/join/${state.code}`;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopiedLink(true);
+      toast("Lien copié dans le presse-papiers.", "success");
+      setTimeout(() => setCopiedLink(false), 2200);
+    } catch {
+      toast("Copie impossible — notez le lien.", "error");
+    }
+  }
+
+  async function start() {
+    setStarting(true);
+    setError(null);
+    const res = await fetch(`/api/sessions/${sessionId}/start`, { method: "POST" });
+    const data = await res.json();
+    setStarting(false);
+    if (!res.ok) {
+      setError(data.error);
+      toast(data.error ?? "Démarrage impossible.", "error");
+      return;
+    }
+    fetchState();
+  }
+
   /* ——————————————————————
      En attente de partenaire
      —————————————————————— */
@@ -232,9 +286,100 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             Ouverture de la partie…
           </span>
 
+          <div className="mt-8 w-full max-w-xs">
+            <p className="text-xs uppercase tracking-[0.16em] text-muted">
+              Ou partage ce lien
+            </p>
+            <a
+              href={inviteLink}
+              data-testid="invite-link"
+              className="mt-2 block truncate text-sm text-accent underline decoration-line underline-offset-4"
+            >
+              {inviteLink}
+            </a>
+            <button
+              type="button"
+              onClick={copyLink}
+              data-testid="copy-link"
+              className="btn btn-secondary btn-sm mt-3"
+            >
+              {copiedLink ? <Check className="size-4 text-sage" /> : <Link2 className="size-4" />}
+              Copier le lien
+            </button>
+            <p className="mt-2 text-xs text-muted">Un simple pseudo suffit pour jouer.</p>
+          </div>
+
           <p className="mt-10 text-xs text-muted">
             Cette page se met à jour toute seule&nbsp;: reste sur cet écran.
           </p>
+        </section>
+      </main>
+    );
+  }
+
+  /* ——————————————————————
+     Lobby (§11)
+     —————————————————————— */
+  if (state.status === "lobby") {
+    const players = [state.host, state.partner].filter(
+      (player): player is NonNullable<typeof player> => player !== null,
+    );
+    return (
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-14">
+        <TopBar code={state.code} copied={copied} onCopy={copyCode} />
+
+        <section
+          data-testid="lobby"
+          className="flex flex-1 flex-col items-center justify-center text-center animate-fade-up"
+        >
+          <span className="grid size-16 place-items-center rounded-full gradient-brand-soft">
+            <Users className="size-7 text-accent" strokeWidth={1.8} />
+          </span>
+          <h1 className="mt-6 font-display text-3xl font-semibold text-fg">
+            Le duo est au complet
+          </h1>
+          <p className="mt-2 text-sm text-muted">avec {partnerName}</p>
+
+          <div className="mt-7 grid w-full grid-cols-2 gap-3">
+            {players.map((player) => (
+              <div
+                key={player.id}
+                data-testid="lobby-player"
+                className="card flex flex-col items-center gap-1.5 px-4 py-5"
+              >
+                <span className="text-3xl leading-none">{player.avatarEmoji}</span>
+                <p className="truncate text-sm font-medium text-fg">{player.displayName}</p>
+                <span className="badge badge-accent">
+                  {player.id === userId ? "Toi" : "Partenaire"}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-6 flex items-center gap-2 text-sm font-medium text-sage">
+            <Check className="size-4" />
+            Les deux joueurs sont prêts.
+          </p>
+
+          <button
+            type="button"
+            onClick={start}
+            disabled={starting}
+            data-testid="start-session"
+            className="btn btn-primary btn-block mt-5 disabled:opacity-60"
+          >
+            {starting ? (
+              <>
+                <RefreshCw className="size-4 animate-spin" />
+                Démarrage…
+              </>
+            ) : (
+              <>
+                <Play className="size-4" />
+                Commencer l&apos;expérience
+              </>
+            )}
+          </button>
         </section>
       </main>
     );
