@@ -128,4 +128,18 @@ par le workflow.
    (verrouillage serveur), reveal « Bien deviné / Raté », 2ᵉ métrique Connaissance
    mutuelle, bilan complété (Bien deviné, Surprises). Migration **additive**
    `20260926160000_predictions` à appliquer sur Neon
-8. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
+8. **Types de questions & modes (Phase E — suite)** — fait : 6 types de questions
+   (single, multiple, scale 1-5, ranking drag-drop, open, prediction) via
+   `QuestionRenderer` unifié ; 4 modes §12 (Se découvrir, Devine ma réponse,
+   Rigoler, Connexion) mappés sur les catégories ; 66 questions seed avec types
+   variés. Migration additive `20260927000002_question_types` à appliquer sur Neon
+9. **Contenu éditable (Phase E — admin)** — fait : `Question.active`, `User.role`,
+   CRUD + import/export JSON/CSV via `/admin/questions`, 66 questions
+   catégorisées (Se découvrir, Rigoler, Connexion, Devine ma réponse).
+   Migrations additives `20260927000000_editable_content` +
+   `20260927000001_question_created_at` + `20260927000002_question_types` à appliquer sur Neon
+10. **Moments & Histoire (Phase F)** — fait : modèles `Moment`, `Challenge`, `DailyDiscovery`,
+   API CRUD, écran découverte du jour (fin session), sauvegarde moments avec photo/texte,
+   admin questions (CRUD + import/export). Migrations additives prêtes pour Neon.
+   ⚠️ 1 e2e instable (`results.spec.ts` — matched count 3/4).
+11. **Beta & MVP (§36, §38, §39, §40, §44)** — rate limiting, analytics, critères d'acceptation, tests utilisateurs

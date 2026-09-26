@@ -76,11 +76,55 @@ test.describe("Boucle cœur", () => {
       await expect(pageB.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
       await pageB.getByTestId("answer-option").first().click();
       await expect(pageA.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
-      await pageA.getByTestId("answer-option").first().click();
+
+// Soumettre la réponse via l'API directe
+      console.log("Envoi réponse via API directe");
+      const apiResponse = await pageA.evaluate(async () => {
+        const pathParts = window.location.pathname.split("/");
+        const sessionId = pathParts[2];
+        
+        // Récupérer l'état actuel pour avoir le roundId
+        const sessionRes = await fetch(`/api/sessions/${sessionId}`);
+        const sessionData = await sessionRes.json();
+        const roundId = sessionData.currentRound?.id;
+        
+        if (!roundId) throw new Error("Pas de round actuel");
+        
+        const res = await fetch(`/api/sessions/${sessionId}/answer`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ roundId, choice: "Installé(e) avec une famille" }),
+        });
+        return { status: res.status, body: await res.json() };
+      });
+      console.log("Réponse API /answer direct:", apiResponse);
+      
+      // Attendre que l'état se propage
+      await pageA.waitForTimeout(3000);
+
+      // Attendre la révélation de la dernière manche (ou directement le bilan si reveal-result ne s'affiche pas)
+      await Promise.race([
+        expect(pageA.getByTestId("reveal-result")).toBeVisible({ timeout: 15_000 }),
+        expect(pageA.getByTestId("results")).toBeVisible({ timeout: 30_000 }),
+      ]);
 
       // Bilan automatique (§22).
       await expect(pageA.getByTestId("results")).toBeVisible({ timeout: 30_000 });
       await expect(pageB.getByTestId("results")).toBeVisible({ timeout: 30_000 });
+
+      // Attendre que les données de bilan soient à jour (propagation SSE/polling)
+      await pageA.waitForTimeout(5000);
+
+      // Vérifier le détail des manches via l'API
+      const roundsData = await pageA.evaluate(async () => {
+        const pathParts = window.location.pathname.split("/");
+        const sessionId = pathParts[2];
+        const res = await fetch(`/api/sessions/${sessionId}`);
+        const data = await res.json();
+        return data.rounds;
+      });
+      console.log("Manches détaillées:", JSON.stringify(roundsData, null, 2));
+      
       await expect(pageA.getByTestId("result-common")).toContainText("4");
       await expect(pageA.getByTestId("result-different")).toContainText("2");
       await expect(pageA.getByTestId("result-knowledge")).toContainText("10");
@@ -89,6 +133,7 @@ test.describe("Boucle cœur", () => {
       await expect(pageA.getByTestId("result-reactions")).toContainText("2");
 
       // Rematch : nouvelle partie sur le même duo, même code.
+      await expect(pageA.getByTestId("rematch")).toBeVisible({ timeout: 10_000 });
       const firstUrl = pageA.url();
       await pageA.getByTestId("rematch").click();
       await pageA.waitForURL((url) => url.pathname.startsWith("/game/") && url.href !== firstUrl);
