@@ -1,0 +1,7 @@
+onlyBuiltDependencies:
+  - esbuild
+  - prisma
+  - "@prisma/engines"
+  - "@prisma/fetch-engine"
+  - "@prisma/client"
+  - "@tailwindcss/oxide"

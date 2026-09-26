@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,500&family=Karla:wght@400;500;700&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #faf4ee;
+  --color-plum: #362430;
+  --color-rose: #c77b87;
+  --color-rose-deep: #a85d6b;
+  --color-gold: #c7973e;
+  --color-sage: #7c8b6f;
+  --color-card: #fffdfb;
+
+  --font-display: "Fraunces", serif;
+  --font-body: "Karla", sans-serif;
+
+  --radius-xl2: 22px;
+}
+
+body {
+  background: #faf4ee;
+  color: #362430;
+}
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background: #211a1e;
+    color: #f3e9ec;
+  }
+}

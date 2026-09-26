@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  avatarEmoji  String   @default("🙂")
+  bio          String?
+  birthdate    DateTime?
+  createdAt    DateTime @default(now())
+
+  hostedSessions  GameSession[] @relation("host")
+  joinedSessions  GameSession[] @relation("partner")
+  answers         Answer[]
+}
+
+model GameSession {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  status    String   @default("waiting") // waiting | active | completed
+  currentLevel Int   @default(1)
+  turnUserId   String? // qui doit tirer la prochaine carte
+  createdAt DateTime @default(now())
+
+  hostId    String
+  host      User     @relation("host", fields: [hostId], references: [id])
+  partnerId String?
+  partner   User?    @relation("partner", fields: [partnerId], references: [id])
+
+  rounds    Round[]
+}
+
+model Question {
+  id       String   @id @default(cuid())
+  level    Int
+  text     String
+  options  String[]
+  category String?
+
+  rounds   Round[]
+}
+
+model Round {
+  id         String   @id @default(cuid())
+  sessionId  String
+  session    GameSession @relation(fields: [sessionId], references: [id])
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id])
+  level      Int
+  status     String   @default("pending") // pending | revealed
+  matched    Boolean?
+  createdAt  DateTime @default(now())
+
+  answers    Answer[]
+
+  @@index([sessionId])
+}
+
+model Answer {
+  id        String   @id @default(cuid())
+  roundId   String
+  round     Round    @relation(fields: [roundId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  choice    String
+  createdAt DateTime @default(now())
+
+  @@unique([roundId, userId])
+}
