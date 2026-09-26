@@ -47,9 +47,20 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   // Le niveau avance tout seul : 2 cartes par palier (§13).
   const level = levelForRound(played);
 
+  // Types de questions compatibles avec le mode standard (prédiction + réponse des deux joueurs)
+  // "prediction" (Devine ma réponse) a un flux différent (un seul joueur prédit), on l'exclut pour l'instant.
+  // "scale", "open", "ranking" ont des UI différentes.
+  const standardTypes = ["single", "multiple"];
+
   const [usedRounds, candidates] = await Promise.all([
     db.round.findMany({ where: { sessionId: gameSession.id }, select: { questionId: true } }),
-    db.question.findMany({ where: { level } }),
+    db.question.findMany({ 
+      where: { 
+        level,
+        type: { in: standardTypes },
+        active: true,
+      } 
+    }),
   ]);
 
   const question = pickUnusedQuestion(

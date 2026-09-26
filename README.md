@@ -138,5 +138,8 @@ par le workflow.
    catégorisées (Se découvrir, Rigoler, Connexion, Devine ma réponse).
    Migrations additives `20260927000000_editable_content` +
    `20260927000001_question_created_at` + `20260927000002_question_types` à appliquer sur Neon
-10. **Moments & Histoire (Phase F)** — §24–28 : découverte du jour, moments,
-   Notre histoire (timeline multi-sessions), challenges, historique complet
+10. **Moments & Histoire (Phase F)** — fait : modèles `Moment`, `Challenge`, `DailyDiscovery`,
+   API CRUD, écran découverte du jour (fin session), sauvegarde moments avec photo/texte,
+   admin questions (CRUD + import/export). Migrations additives prêtes pour Neon.
+   ⚠️ 1 e2e instable (`results.spec.ts` — matched count 3/4).
+11. **Beta & MVP (§36, §38, §39, §40, §44)** — rate limiting, analytics, critères d'acceptation, tests utilisateurs

@@ -25,6 +25,8 @@ import { toast } from "@/components/ui/Toaster";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Logo from "@/components/Logo";
 import { QuestionRenderer } from "@/components/QuestionRenderer";
+import DiscoveryScreen from "@/components/DiscoveryScreen";
+import SaveMomentDialog from "@/components/SaveMomentDialog";
 import { remainingMs } from "@/lib/timer";
 import { levelMeta } from "@/lib/levels";
 import {
@@ -96,6 +98,14 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const [copiedLink, setCopiedLink] = useState(false);
   const [showMotivations, setShowMotivations] = useState(false);
   const [closedRoundId, setClosedRoundId] = useState<string | null>(null);
+  const [showDiscovery, setShowDiscovery] = useState(false);
+  const [discoveryContent, setDiscoveryContent] = useState<string>("");
+  const [saveMomentOpen, setSaveMomentOpen] = useState(false);
+  const [saveMomentData, setSaveMomentData] = useState<{
+    title: string;
+    content: string;
+    questionId?: string;
+  } | null>(null);
   const [, forceTick] = useState(0);
 
   const fetchState = useCallback(async () => {
@@ -186,6 +196,13 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   useEffect(() => {
     setShowMotivations(false);
   }, [currentRoundId]);
+
+  // Déclencher la découverte du jour quand la partie se termine
+  useEffect(() => {
+    if (state?.status === "completed" && !showDiscovery) {
+      handleSessionComplete();
+    }
+  }, [state?.status, showDiscovery]);
 
   if (!state) {
     return (
@@ -326,6 +343,40 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
       return;
     }
     router.push(`/game/${data.id}`);
+  }
+
+  async function handleSessionComplete() {
+    if (!state) return;
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/discovery`, { method: "POST" });
+      if (res.ok) {
+        const discovery = await res.json();
+        setDiscoveryContent(discovery.content);
+        setShowDiscovery(true);
+      }
+    } catch {
+      // Si la découverte échoue, on continue sans
+    }
+  }
+
+  async function handleSaveMoment(data: { title: string; content: string; questionId?: string }) {
+    if (!state) return;
+    await fetch("/api/moments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        duoId: state.duoId,
+        sessionId,
+        title: data.title,
+        content: data.content,
+        questionId: data.questionId,
+      }),
+    });
+  }
+
+  async function openSaveMoment(data: { title: string; content: string; questionId?: string }) {
+    setSaveMomentData(data);
+    setSaveMomentOpen(true);
   }
 
   async function copyCode() {
@@ -600,36 +651,35 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             </div>
           </div>
 
-          <div className="mt-6 flex w-full flex-col gap-3">
-            <button
-              type="button"
-              onClick={rematch}
-              disabled={rematching}
-              data-testid="rematch"
-              className="btn btn-primary btn-block disabled:opacity-60"
-            >
-              {rematching ? (
-                <>
-                  <RefreshCw className="size-4 animate-spin" />
-                  Création…
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="size-4" />
-                  Rejouer avec {partnerName}
-                </>
-              )}
-            </button>
-            <Link href="/dashboard" className="btn btn-secondary btn-block">
-              Retour aux parties
-            </Link>
-            <Link href={`/game/${sessionId}/review`} className="btn btn-ghost btn-block">
-              <ListChecks className="size-4" />
-              Revoir les questions
-            </Link>
-          </div>
-        </section>
+          </section>
       </main>
+    );
+  }
+
+  // Écran de découverte du jour (modal)
+  if (showDiscovery) {
+    return (
+      <DiscoveryScreen
+        sessionId={sessionId}
+        duoId={state.duoId}
+        content={discoveryContent}
+        onSaveMoment={openSaveMoment}
+        onClose={() => setShowDiscovery(false)}
+      />
+    );
+  }
+
+  // Modal de sauvegarde de moment
+  if (saveMomentOpen && saveMomentData) {
+    return (
+      <SaveMomentDialog
+        isOpen={saveMomentOpen}
+        onClose={() => setSaveMomentOpen(false)}
+        onSave={handleSaveMoment}
+        defaultTitle={saveMomentData.title}
+        defaultContent={saveMomentData.content}
+        questionId={saveMomentData.questionId}
+      />
     );
   }
 

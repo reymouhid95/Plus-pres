@@ -32,8 +32,10 @@ model Duo {
   status    String   @default("pending") // pending | ready
   createdAt DateTime @default(now())
 
-  members  DuoMember[]
-  sessions GameSession[]
+  members     DuoMember[]
+  sessions    GameSession[]
+  moments     Moment[]
+  challenges  Challenge[]
 }
 
 model DuoMember {
@@ -62,6 +64,8 @@ model GameSession {
   duo      Duo    @relation(fields: [duoId], references: [id], onDelete: Cascade)
 
   rounds    Round[]
+  moments   Moment[]
+  discovery DailyDiscovery?
 }
 
 model Question {
@@ -76,7 +80,8 @@ model Question {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  rounds    Round[]
+  rounds   Round[]
+  moments  Moment[]
 }
 
 model Round {
@@ -158,4 +163,47 @@ model Discussion {
 
   @@unique([roundId, userId])
   @@index([roundId])
+}
+
+/** Moment sauvegardé par le duo (§25). */
+model Moment {
+  id        String   @id @default(cuid())
+  duoId     String
+  duo       Duo      @relation(fields: [duoId], references: [id], onDelete: Cascade)
+  sessionId String?
+  session   GameSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  title     String
+  content   String?
+  imageUrl  String?
+  questionId String?
+  question  Question? @relation(fields: [questionId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+
+  @@index([duoId])
+  @@index([sessionId])
+}
+
+/** Challenge à réaliser ensemble (§27). */
+model Challenge {
+  id          String   @id @default(cuid())
+  duoId       String
+  duo         Duo      @relation(fields: [duoId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      String   @default("pending") // pending | completed
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([duoId])
+}
+
+/** Découverte du jour générée à la fin d'une session (§24). */
+model DailyDiscovery {
+  id        String   @id @default(cuid())
+  sessionId String   @unique
+  session   GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([sessionId])
 }
