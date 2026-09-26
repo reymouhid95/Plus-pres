@@ -103,6 +103,9 @@ par le workflow.
    `maxDuration = 60`, reconnexion automatique) avec polling 2,5 s en secours,
    minuteur 60/45/30 s par niveau (`Round.startedAt` / `expiresAt`),
    expiration résolue côté serveur (`src/lib/expiry.ts`)
-3. **Historique & statistiques** — `/history`, `/game/[id]/review`, sparklines SVG
+3. **Historique & statistiques** — fait : `/history` (taux pondéré, courbe 14 jours,
+   répartition par niveau, points de friction), `/game/[id]/review`, carte de
+   résultat exportable en PNG, bloc « Votre évolution » sur le dashboard,
+   agrégats SQL via `src/lib/history.ts` + logique pure dans `src/lib/stats.ts`
 4. **Lien d'invitation + notifications in-app** — `/join/[CODE]`, QR code, modèle `Notification`
 5. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions

@@ -3,8 +3,10 @@ import { getServerSession } from "next-auth";
 import { ArrowRight, ChevronRight, Hourglass, Layers, PartyPopper, Play } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getUserStats } from "@/lib/history";
 import AppHeader from "@/components/AppHeader";
 import DashboardActions from "@/components/DashboardActions";
+import Sparkline from "@/components/Sparkline";
 
 const STATUS_META = {
   waiting: { label: "En attente", tone: "badge-gold" },
@@ -16,14 +18,17 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const userId = (session!.user as any).id as string;
 
-  const sessions = await db.gameSession.findMany({
-    where: { OR: [{ hostId: userId }, { partnerId: userId }] },
-    orderBy: { createdAt: "desc" },
-    include: {
-      host: { select: { displayName: true, avatarEmoji: true } },
-      partner: { select: { displayName: true, avatarEmoji: true } },
-    },
-  });
+  const [sessions, evolution] = await Promise.all([
+    db.gameSession.findMany({
+      where: { OR: [{ hostId: userId }, { partnerId: userId }] },
+      orderBy: { createdAt: "desc" },
+      include: {
+        host: { select: { displayName: true, avatarEmoji: true } },
+        partner: { select: { displayName: true, avatarEmoji: true } },
+      },
+    }),
+    getUserStats(userId),
+  ]);
 
   const stats = {
     total: sessions.length,
@@ -69,12 +74,53 @@ export default async function DashboardPage() {
           <DashboardActions />
         </section>
 
-        <section className="mt-12 animate-fade-up stagger-2">
+        <section className="mt-8 animate-fade-up stagger-2">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-lg font-semibold text-fg">Votre évolution</h2>
+            <Link
+              href="/history"
+              className="text-xs uppercase tracking-[0.16em] text-accent transition hover:text-fg"
+            >
+              Tout voir
+            </Link>
+          </div>
+
+          <div className="card mt-4 flex items-center gap-5 px-5 py-4">
+            <div className="shrink-0 text-center">
+              <p className="font-display text-3xl font-semibold tabular-nums text-fg">
+                {evolution.percentage}%
+              </p>
+              <p className="text-[0.7rem] uppercase tracking-[0.14em] text-muted">alignement</p>
+            </div>
+            <div className="min-w-0 flex-1">
+              {evolution.totalRounds > 0 ? (
+                <>
+                  <Sparkline points={evolution.timeline} height={56} />
+                  <p className="mt-1.5 text-xs text-muted">
+                    {evolution.matchedRounds} réponse
+                    {evolution.matchedRounds > 1 ? "s" : ""} alignée
+                    {evolution.matchedRounds > 1 ? "s" : ""} sur {evolution.totalRounds} manche
+                    {evolution.totalRounds > 1 ? "s" : ""}
+                  </p>
+                </>
+              ) : (
+                <p className="text-sm text-muted">
+                  Jouez une première partie pour voir votre courbe apparaître ici.
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-12 animate-fade-up stagger-3">
           <div className="flex items-baseline justify-between">
             <h2 className="font-display text-lg font-semibold text-fg">Vos parties</h2>
-            <span className="text-xs uppercase tracking-[0.16em] text-muted">
+            <Link
+              href="/history"
+              className="text-xs uppercase tracking-[0.16em] text-muted transition hover:text-accent"
+            >
               {stats.total} au total
-            </span>
+            </Link>
           </div>
 
           <div className="mt-4 flex flex-col gap-3">

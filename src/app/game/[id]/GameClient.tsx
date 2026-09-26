@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ClipboardCopy,
   Hourglass,
+  ListChecks,
   PartyPopper,
   Play,
   RefreshCw,
@@ -19,12 +20,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import ProgressRing from "@/components/ui/ProgressRing";
 import Logo from "@/components/Logo";
 import { remainingMs } from "@/lib/timer";
-
-const LEVEL_META: Record<number, { label: string; color: string; hint: string }> = {
-  1: { label: "Découverte", color: "#C7973E", hint: "Des questions simples pour briser la glace." },
-  2: { label: "Complicité", color: "#C77B87", hint: "Un cran de profondeur en plus." },
-  3: { label: "Connexion", color: "#7C8B6F", hint: "Les questions qui comptent vraiment." },
-};
+import { levelMeta } from "@/lib/levels";
 
 type RoundState = {
   id: string;
@@ -139,7 +135,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const partner = state.host.id === userId ? state.partner : state.host;
   const partnerName = partner?.displayName ?? "votre partenaire";
   const isMyTurn = state.turnUserId === userId;
-  const meta = LEVEL_META[state.currentLevel] ?? LEVEL_META[1];
+  const meta = levelMeta(state.currentLevel);
   const round = state.currentRound;
   const gameCode = state.code;
   // Écart entre l'horloge serveur et celle du navigateur, recalculé à chaque
@@ -270,17 +266,17 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
 
             <div className="w-full space-y-3">
               {Object.entries(state.compatibility.byLevel).map(([level, pct]) => {
-                const levelMeta = LEVEL_META[Number(level)] ?? LEVEL_META[1];
+                const barMeta = levelMeta(Number(level));
                 return (
                   <div key={level} className="text-left">
                     <div className="flex items-baseline justify-between text-xs">
-                      <span className="font-medium text-fg">{levelMeta.label}</span>
+                      <span className="font-medium text-fg">{barMeta.label}</span>
                       <span className="tabular-nums text-muted">{pct}%</span>
                     </div>
                     <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-fg/10">
                       <div
                         className="h-full rounded-full transition-[width] duration-1000 ease-out"
-                        style={{ width: `${pct}%`, backgroundColor: levelMeta.color }}
+                        style={{ width: `${pct}%`, backgroundColor: barMeta.color }}
                       />
                     </div>
                   </div>
@@ -296,6 +292,10 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             </button>
             <Link href="/dashboard" className="btn btn-secondary btn-block">
               Retour aux parties
+            </Link>
+            <Link href={`/game/${sessionId}/review`} className="btn btn-ghost btn-block">
+              <ListChecks className="size-4" />
+              Revoir les questions
             </Link>
           </div>
         </section>
@@ -313,7 +313,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
       <section className="mt-6 animate-fade-up">
         <div className="flex items-center gap-2">
           {[1, 2, 3].map((lvl) => {
-            const levelMeta = LEVEL_META[lvl];
+            const barMeta = levelMeta(lvl);
             const active = lvl === state.currentLevel;
             const passed = lvl < state.currentLevel;
             return (
@@ -321,14 +321,14 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 <span
                   className="h-1.5 w-full rounded-full transition-colors duration-500"
                   style={{
-                    backgroundColor: active || passed ? levelMeta.color : "var(--color-line)",
+                    backgroundColor: active || passed ? barMeta.color : "var(--color-line)",
                   }}
                 />
                 <span
                   className="truncate text-[0.7rem] font-semibold tracking-wide"
-                  style={{ color: active ? levelMeta.color : "var(--color-muted)" }}
+                  style={{ color: active ? barMeta.color : "var(--color-muted)" }}
                 >
-                  {levelMeta.label}
+                  {barMeta.label}
                 </span>
               </div>
             );
