@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { advanceSession, canAnswer, canDraw, clientSessionStatus, MAX_LEVEL } from "./session-state";
+import {
+  canAnswer,
+  canDraw,
+  canInteract,
+  canPredict,
+  canStart,
+  clientSessionStatus,
+} from "./session-state";
 
 describe("canDraw", () => {
   const base = {
@@ -8,6 +15,8 @@ describe("canDraw", () => {
     turnUserId: "u1",
     userId: "u1",
     hasPendingRound: false,
+    played: 0,
+    maxRounds: 6,
   };
 
   it("autorise le tirage quand tout est réuni", () => {
@@ -22,8 +31,24 @@ describe("canDraw", () => {
     });
   });
 
+  it("refuse quand la partie est encore au lobby", () => {
+    expect(canDraw({ ...base, sessionStatus: "lobby" })).toEqual({
+      ok: false,
+      error: "La partie n'a pas encore commencé — lancez-la depuis le lobby.",
+      status: 400,
+    });
+  });
+
   it("refuse quand la partie est terminée", () => {
     expect(canDraw({ ...base, sessionStatus: "completed" }).ok).toBe(false);
+  });
+
+  it("refuse quand le quota de cartes est atteint", () => {
+    expect(canDraw({ ...base, played: 6 })).toEqual({
+      ok: false,
+      error: "Session terminée — place au bilan.",
+      status: 400,
+    });
   });
 
   it("refuse quand ce n'est pas son tour", () => {
@@ -40,37 +65,104 @@ describe("canDraw", () => {
 });
 
 describe("canAnswer", () => {
+  const base = {
+    roundStatus: "pending",
+    alreadyAnswered: false,
+    predictionRequired: true,
+    hasPredicted: true,
+  };
+
   it("autorise une première réponse sur une manche en attente", () => {
-    expect(canAnswer({ roundStatus: "pending", alreadyAnswered: false })).toEqual({ ok: true });
+    expect(canAnswer(base)).toEqual({ ok: true });
   });
 
   it("refuse sur une manche déjà révélée", () => {
-    expect(canAnswer({ roundStatus: "revealed", alreadyAnswered: false })).toEqual({
+    expect(canAnswer({ ...base, roundStatus: "revealed" })).toEqual({
       ok: false,
       error: "Cette manche est déjà révélée.",
       status: 400,
     });
   });
 
+  it("exige la prédiction quand le mode est actif", () => {
+    expect(canAnswer({ ...base, hasPredicted: false })).toEqual({
+      ok: false,
+      error: "Prédisez d'abord la réponse de l'autre.",
+      status: 400,
+    });
+  });
+
+  it("laisse répondre sans prédiction quand le mode est coupé", () => {
+    expect(
+      canAnswer({ ...base, predictionRequired: false, hasPredicted: false }),
+    ).toEqual({ ok: true });
+  });
+
   it("refuse un doublon de réponse", () => {
-    expect(canAnswer({ roundStatus: "pending", alreadyAnswered: true }).ok).toBe(false);
+    expect(canAnswer({ ...base, alreadyAnswered: true }).ok).toBe(false);
   });
 });
 
-describe("advanceSession", () => {
-  it("monte d'un niveau tant que le max n'est pas atteint", () => {
-    expect(advanceSession(1)).toEqual({ nextLevel: 2, status: "playing" });
-    expect(advanceSession(2)).toEqual({ nextLevel: 3, status: "playing" });
+describe("canPredict", () => {
+  it("autorise une première prédiction sur une manche en attente", () => {
+    expect(canPredict({ roundStatus: "pending", alreadyPredicted: false })).toEqual({
+      ok: true,
+    });
   });
 
-  it("termine la partie au dernier niveau", () => {
-    expect(advanceSession(MAX_LEVEL)).toEqual({ nextLevel: MAX_LEVEL, status: "completed" });
+  it("refuse sur une manche déjà révélée", () => {
+    expect(canPredict({ roundStatus: "revealed", alreadyPredicted: false }).ok).toBe(
+      false,
+    );
+  });
+
+  it("refuse un doublon de prédiction", () => {
+    expect(
+      canPredict({ roundStatus: "pending", alreadyPredicted: true }),
+    ).toEqual({
+      ok: false,
+      error: "Vous avez déjà prédit la réponse de l'autre.",
+      status: 400,
+    });
+  });
+});
+
+describe("canStart", () => {
+  it("autorise le démarrage quand le duo est prêt et la session au lobby", () => {
+    expect(canStart({ duoStatus: "ready", sessionStatus: "lobby" })).toEqual({ ok: true });
+  });
+
+  it("refuse tant que le partenaire n'a pas rejoint", () => {
+    expect(canStart({ duoStatus: "pending", sessionStatus: "lobby" })).toEqual({
+      ok: false,
+      error: "En attente du partenaire pour commencer.",
+      status: 400,
+    });
+  });
+
+  it("refuse quand la partie est déjà lancée", () => {
+    expect(canStart({ duoStatus: "ready", sessionStatus: "playing" }).ok).toBe(false);
+  });
+});
+
+describe("canInteract", () => {
+  it("autorise réactions et conversations après la révélation", () => {
+    expect(canInteract({ roundStatus: "revealed" })).toEqual({ ok: true });
+  });
+
+  it("refuse avant la révélation", () => {
+    expect(canInteract({ roundStatus: "pending" })).toEqual({
+      ok: false,
+      error: "Cette manche n'est pas encore révélée.",
+      status: 400,
+    });
   });
 });
 
 describe("clientSessionStatus", () => {
-  it("dérive waiting / active / completed pour le client existant", () => {
-    expect(clientSessionStatus("pending", "playing")).toBe("waiting");
+  it("dérive waiting / lobby / active / completed pour le client", () => {
+    expect(clientSessionStatus("pending", "lobby")).toBe("waiting");
+    expect(clientSessionStatus("ready", "lobby")).toBe("lobby");
     expect(clientSessionStatus("ready", "playing")).toBe("active");
     expect(clientSessionStatus("ready", "completed")).toBe("completed");
   });

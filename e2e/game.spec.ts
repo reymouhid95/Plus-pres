@@ -35,10 +35,22 @@ test.describe("Partie", () => {
 
       await expect(pageA.getByText("avec Bob")).toBeVisible({ timeout: 30_000 });
 
+      // Lobby : les deux joueurs sont prêts, Alice démarre l'expérience.
+      await expect(pageA.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });
+      await expect(pageA.getByText("Les deux joueurs sont prêts.")).toBeVisible();
+      await expect(pageB.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });
+      await pageA.getByTestId("start-session").click();
+
       // Le tirage revient à Alice (elle a créé la partie).
       const draw = pageA.getByTestId("draw");
       await expect(draw).toBeVisible({ timeout: 30_000 });
       await draw.click();
+
+      // Prédiction (§18) : chacun devine la réponse de l'autre avant de répondre.
+      await expect(pageA.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+      await pageA.getByTestId("predict-option").first().click();
+      await expect(pageB.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+      await pageB.getByTestId("predict-option").first().click();
 
       const optionsA = pageA.getByTestId("answer-option");
       await expect(optionsA).toHaveCount(4, { timeout: 20_000 });
@@ -62,13 +74,20 @@ test.describe("Partie", () => {
       // La révélation doit arriver par le flux (~500 ms), pas par le polling.
       await expect(pageA.getByTestId("reveal-result")).toBeVisible({ timeout: 2_000 });
       await expect(pageA.getByTestId("reveal-result")).toContainText(
-        "Réponses différentes",
+        "choisi différemment",
       );
-      await expect(pageA.getByTestId("compatibility")).toContainText("0 / 1 alignées");
+      // Alice avait prédit le premier choix, Bob a pris le deuxième : raté.
+      await expect(pageA.getByTestId("prediction-result")).toContainText("Raté");
+      // §43.2 : aucun score affiché pendant la partie.
+      await expect(pageA.getByTestId("compatibility")).toHaveCount(0);
 
       // Relance : c'est maintenant à Bob de tirer.
       await expect(pageB.getByTestId("draw")).toBeVisible({ timeout: 30_000 });
       await pageB.getByTestId("draw").click();
+      await expect(pageB.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+      await pageB.getByTestId("predict-option").first().click();
+      await expect(pageA.getByTestId("predict-option")).toHaveCount(4, { timeout: 30_000 });
+      await pageA.getByTestId("predict-option").first().click();
       await expect(pageB.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
       await pageB.getByTestId("answer-option").first().click();
       await expect(pageB.getByText("Réponse enregistrée")).toBeVisible();
@@ -77,7 +96,7 @@ test.describe("Partie", () => {
       await pageA.getByTestId("answer-option").first().click();
       await expect(pageA.getByTestId("reveal-result")).toBeVisible({ timeout: 30_000 });
       await expect(pageA.getByTestId("reveal-result")).toContainText("alignés");
-      await expect(pageA.getByTestId("compatibility")).toContainText("1 / 2 alignées");
+      await expect(pageA.getByTestId("prediction-result")).toContainText("Bien deviné");
     } finally {
       await ctxA.close();
       await ctxB.close();

@@ -3,25 +3,35 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isDuoMember } from "@/lib/duo";
-import { advanceSession } from "@/lib/session-state";
+import { canStart, SESSION_STATUS } from "@/lib/session-state";
 
+/** Démarrer une expérience depuis le lobby (§11). Chaque membre peut lancer. */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   const userId = (session.user as any).id as string;
 
-  const gameSession = await db.gameSession.findUnique({ where: { id } });
+  const gameSession = await db.gameSession.findUnique({
+    where: { id },
+    include: { duo: { select: { status: true } } },
+  });
   if (!gameSession) return NextResponse.json({ error: "Partie introuvable." }, { status: 404 });
   if (!(await isDuoMember(gameSession.duoId, userId))) {
     return NextResponse.json({ error: "Vous ne participez pas à cette partie." }, { status: 403 });
   }
 
-  const { nextLevel, status } = advanceSession(gameSession.currentLevel);
+  const guard = canStart({
+    duoStatus: gameSession.duo.status,
+    sessionStatus: gameSession.status,
+  });
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
+  }
 
   const updated = await db.gameSession.update({
     where: { id },
-    data: { currentLevel: nextLevel, status },
+    data: { status: SESSION_STATUS.PLAYING },
   });
 
   return NextResponse.json(updated);

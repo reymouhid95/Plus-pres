@@ -20,6 +20,9 @@ model User {
 
   duoMemberships DuoMember[]
   answers        Answer[]
+  predictions    Prediction[]
+  reactions      Reaction[]
+  discussions    Discussion[]
 }
 
 model Duo {
@@ -47,8 +50,10 @@ model DuoMember {
 
 model GameSession {
   id        String   @id @default(cuid())
-  status    String   @default("playing") // playing | completed
+  status    String   @default("playing") // lobby | playing | completed
   currentLevel Int   @default(1)
+  maxRounds Int      @default(6) // §13 : session courte de 5 à 7 cartes
+  predictionsEnabled Boolean @default(true) // §18 : prédire avant de répondre
   turnUserId   String? // qui doit tirer la prochaine carte
   createdAt DateTime @default(now())
 
@@ -82,6 +87,9 @@ model Round {
   createdAt  DateTime @default(now())
 
   answers    Answer[]
+  predictions Prediction[]
+  reactions  Reaction[]
+  discussions Discussion[]
 
   @@index([sessionId])
 }
@@ -96,4 +104,52 @@ model Answer {
   createdAt DateTime @default(now())
 
   @@unique([roundId, userId])
+}
+
+/** Prédiction de la réponse de l'autre, avant de répondre soi-même (§18).
+ * Verrouillée côté serveur comme les réponses. Une par joueur et par manche. */
+model Prediction {
+  id        String   @id @default(cuid())
+  roundId   String
+  round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  choice    String
+  createdAt DateTime @default(now())
+
+  @@unique([roundId, userId])
+  @@index([roundId])
+}
+
+/** Réaction rapide après une révélation (§19). Une par joueur et par manche. */
+model Reaction {
+  id        String   @id @default(cuid())
+  roundId   String
+  round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([roundId, userId])
+  @@index([roundId])
+}
+
+/**
+ * Conversation ouverte après une divergence (§20) : l'action choisie
+ * (pourquoi / défendre / compromis) et, pour « pourquoi », la motivation
+ * sélectionnée (§21). Une par joueur et par manche.
+ */
+model Discussion {
+  id        String   @id @default(cuid())
+  roundId   String
+  round     Round    @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  content   String?
+  createdAt DateTime @default(now())
+
+  @@unique([roundId, userId])
+  @@index([roundId])
 }

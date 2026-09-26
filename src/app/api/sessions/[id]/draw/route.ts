@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isDuoMember } from "@/lib/duo";
 import { pickUnusedQuestion } from "@/lib/questions";
+import { levelForRound } from "@/lib/interactions";
 import { canDraw } from "@/lib/session-state";
 import { expiryDate } from "@/lib/timer";
 
@@ -26,20 +27,28 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   const pending = gameSession.rounds[0];
+  const played = await db.round.count({
+    where: { sessionId: gameSession.id, status: "revealed" },
+  });
   const guard = canDraw({
     duoStatus: gameSession.duo.status,
     sessionStatus: gameSession.status,
     turnUserId: gameSession.turnUserId,
     userId,
     hasPendingRound: Boolean(pending && pending.status === "pending"),
+    played,
+    maxRounds: gameSession.maxRounds,
   });
   if (!guard.ok) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
+  // Le niveau avance tout seul : 2 cartes par palier (§13).
+  const level = levelForRound(played);
+
   const [usedRounds, candidates] = await Promise.all([
     db.round.findMany({ where: { sessionId: gameSession.id }, select: { questionId: true } }),
-    db.question.findMany({ where: { level: gameSession.currentLevel } }),
+    db.question.findMany({ where: { level } }),
   ]);
 
   const question = pickUnusedQuestion(
@@ -51,15 +60,21 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   const now = new Date();
-  const round = await db.round.create({
-    data: {
-      sessionId: gameSession.id,
-      questionId: question.id,
-      level: gameSession.currentLevel,
-      startedAt: now,
-      expiresAt: expiryDate(gameSession.currentLevel, now),
-    },
-  });
+  const [round] = await db.$transaction([
+    db.round.create({
+      data: {
+        sessionId: gameSession.id,
+        questionId: question.id,
+        level,
+        startedAt: now,
+        expiresAt: expiryDate(level, now),
+      },
+    }),
+    db.gameSession.update({
+      where: { id: gameSession.id },
+      data: { currentLevel: level },
+    }),
+  ]);
 
   return NextResponse.json({ id: round.id });
 }

@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const round = await db.round.findUnique({
     where: { id: parsed.data.roundId },
-    include: { answers: true },
+    include: { answers: true, predictions: { select: { userId: true } } },
   });
   if (!round || round.sessionId !== gameSession.id) {
     return NextResponse.json({ error: "Manche introuvable." }, { status: 404 });
@@ -38,6 +38,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const guard = canAnswer({
     roundStatus: round.status,
     alreadyAnswered: round.answers.some((a) => a.userId === userId),
+    predictionRequired: gameSession.predictionsEnabled,
+    hasPredicted: round.predictions.some((p) => p.userId === userId),
   });
   if (!guard.ok) {
     return NextResponse.json({ error: guard.error }, { status: guard.status });
@@ -60,6 +62,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       where: { id: gameSession.id },
       data: { turnUserId: nextTurnUserId },
     });
+
+    // Dernière carte de la session : place au bilan (§13, §22).
+    const revealedCount = await db.round.count({
+      where: { sessionId: gameSession.id, status: "revealed" },
+    });
+    if (revealedCount >= gameSession.maxRounds) {
+      await db.gameSession.update({
+        where: { id: gameSession.id },
+        data: { status: "completed" },
+      });
+    }
 
     return NextResponse.json({ status: "revealed", matched });
   }

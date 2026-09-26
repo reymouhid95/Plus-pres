@@ -113,6 +113,19 @@ par le workflow.
    `src/lib/session-state.ts`), contrat client inchangé.
    ⚠️ Migration `20260926120000_duo_model` **destructive** (`hostId`/`partnerId`/
    `code` retirés) : à appliquer sur Neon via `prisma migrate deploy`
-5. **Lien d'invitation + auth progressive (Phase B)** — `/join/[CODE]`, pseudo
-   invité, conversion de compte, lobby §11, repositionnement landing §7.1
-6. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
+5. **Lien d'invitation + auth progressive (Phase B)** — fait : `/join/[CODE]`
+   (pseudo invité sans compte, cas membre connecté / déjà-membre / duo complet),
+   provider next-auth `guest`, `POST /api/auth/upgrade` (même `user.id`),
+   lobby §11 (joueurs, toast « X vient de rejoindre », bouton Commencer, statut
+   session `lobby` + route `start`), landing §7.1 (CTA « Commencer une expérience
+   à deux »)
+6. **Boucle cœur (Phase C)** — fait : reveal « Vous avez choisi différemment »
+   (neutre), réactions rapides, openers de conversation + motivations, score
+   masqué en jeu, bilan « Vous avez découvert », sessions de 6 cartes (2 par
+   palier, fin auto), rematch même duo/même code. Migration **additive**
+   `20260926140000_reactions_discussions` à appliquer sur Neon
+7. **Devine ma réponse (Phase D)** — fait : chaque manche = prédire puis répondre
+   (verrouillage serveur), reveal « Bien deviné / Raté », 2ᵉ métrique Connaissance
+   mutuelle, bilan complété (Bien deviné, Surprises). Migration **additive**
+   `20260926160000_predictions` à appliquer sur Neon
+8. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions

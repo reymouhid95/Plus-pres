@@ -17,8 +17,8 @@ const FEATURES = [
   },
   {
     icon: Timer,
-    title: "Score en direct",
-    text: "Un pourcentage pondéré se recalcule à chaque manche, avec le détail par niveau.",
+    title: "Révélations",
+    text: "Chaque manche révèle vos choix côte à côte — et lance la discussion.",
     tone: "text-sage",
   },
 ] as const;
@@ -58,20 +58,24 @@ export default function Home() {
         </h1>
 
         <p className="mt-6 max-w-xl text-base leading-relaxed text-muted animate-fade-up stagger-2 sm:text-lg">
-          Vous répondez chacun de votre côté à des questions choisies selon le niveau en cours. Une
-          fois les deux réponses déposées, l&apos;application révèle si vous étiez alignés — et met
-          votre compatibilité à jour.
+          Vous répondez chacun de votre côté à des questions pensées pour deux. Une
+          fois les deux réponses déposées, l&apos;application les révèle côte à côte —
+          pour comparer, raconter, et découvrir ce que vos choix disent de vous.
         </p>
 
         <div className="mt-9 flex flex-wrap items-center justify-center gap-3 animate-fade-up stagger-3">
           <Link href="/register" className="btn btn-primary">
-            Commencer à jouer
+            Commencer une expérience à deux
             <ArrowRight className="size-4" />
           </Link>
           <Link href="/login" className="btn btn-secondary">
             J&apos;ai déjà un compte
           </Link>
         </div>
+        <p className="mt-5 max-w-md text-sm text-muted animate-fade-up stagger-4">
+          Un lien d&apos;invitation&nbsp;? Ouvrez-le : un simple pseudo suffit pour jouer,
+          sans compte.
+        </p>
 
         <dl className="mt-12 flex items-center gap-8 text-center animate-fade-up stagger-4 sm:gap-14">
           {STATS.map((stat) => (

@@ -20,6 +20,7 @@ export const dynamic = "force-dynamic";
 
 const STATUS_LABEL: Record<string, string> = {
   waiting: "En attente",
+  lobby: "Lobby",
   active: "En cours",
   completed: "Terminée",
 };

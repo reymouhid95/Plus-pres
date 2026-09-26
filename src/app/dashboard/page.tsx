@@ -8,9 +8,11 @@ import { clientSessionStatus } from "@/lib/session-state";
 import AppHeader from "@/components/AppHeader";
 import DashboardActions from "@/components/DashboardActions";
 import Sparkline from "@/components/Sparkline";
+import UpgradeBanner from "@/components/UpgradeBanner";
 
 const STATUS_META = {
   waiting: { label: "En attente", tone: "badge-gold" },
+  lobby: { label: "Lobby", tone: "badge-gold" },
   active: { label: "En cours", tone: "badge-accent" },
   completed: { label: "Terminée", tone: "badge-sage" },
 } as const;
@@ -19,7 +21,7 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   const userId = (session!.user as any).id as string;
 
-  const [sessions, evolution] = await Promise.all([
+  const [sessions, evolution, me] = await Promise.all([
     db.gameSession.findMany({
       where: { duo: { members: { some: { userId } } } },
       orderBy: { createdAt: "desc" },
@@ -37,6 +39,7 @@ export default async function DashboardPage() {
       },
     }),
     getUserStats(userId),
+    db.user.findUnique({ where: { id: userId }, select: { isGuest: true } }),
   ]);
 
   const stats = {
@@ -62,6 +65,8 @@ export default async function DashboardPage() {
             Une partie, un code, deux joueurs. Chacun répond de son côté&nbsp;— les réponses ne se
             croisent qu&apos;une fois les deux ont tranché.
           </p>
+
+          {me?.isGuest && <UpgradeBanner displayName={session!.user?.name ?? "joueur"} />}
 
           <dl className="mt-7 grid grid-cols-3 gap-3 sm:max-w-md">
             {[

@@ -1,5 +1,6 @@
 import { customAlphabet } from "nanoid";
 import { db } from "./db";
+import { SESSION_STATUS } from "./session-state";
 
 /**
  * Modèle Duo — cahier §32.
@@ -93,8 +94,8 @@ export async function generateDuoCode(): Promise<string> {
 }
 
 /**
- * Crée un duo (hôte seul, statut pending) et sa première session.
- * Phase A : une « nouvelle partie » = un nouveau duo, comme avant.
+ * Crée un duo (hôte seul, statut pending) et sa première session (lobby, §11).
+ * Phase B : une « nouvelle partie » = un nouveau duo, comme avant.
  */
 export async function createDuoWithSession(hostUserId: string) {
   const code = await generateDuoCode();
@@ -104,21 +105,31 @@ export async function createDuoWithSession(hostUserId: string) {
       data: { duoId: duo.id, userId: hostUserId, role: DUO_ROLES.HOST },
     });
     const session = await tx.gameSession.create({
-      data: { duoId: duo.id, status: "playing", turnUserId: hostUserId },
+      data: { duoId: duo.id, status: SESSION_STATUS.LOBBY, turnUserId: hostUserId },
     });
     return { duo, session };
   });
 }
 
-/** Ajoute un joueur au duo (statut ready) et renvoie la session active. */
+/**
+ * Ajoute un joueur au duo (statut ready) et renvoie la session à ouvrir.
+ * Les sessions héritées (statut pré-lobby) basculent en lobby.
+ */
 export async function joinDuo(duoId: string, userId: string) {
   return db.$transaction(async (tx) => {
     await tx.duoMember.create({
       data: { duoId, userId, role: DUO_ROLES.PARTNER },
     });
     await tx.duo.update({ where: { id: duoId }, data: { status: DUO_STATUS.READY } });
+    await tx.gameSession.updateMany({
+      where: {
+        duoId,
+        status: { notIn: [SESSION_STATUS.PLAYING, SESSION_STATUS.COMPLETED] },
+      },
+      data: { status: SESSION_STATUS.LOBBY },
+    });
     const session = await tx.gameSession.findFirst({
-      where: { duoId, status: { not: "completed" } },
+      where: { duoId, status: { not: SESSION_STATUS.COMPLETED } },
       orderBy: { createdAt: "desc" },
     });
     return session;
