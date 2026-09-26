@@ -84,9 +84,23 @@ export type DiscussInput = z.infer<typeof discussSchema>;
 export const questionSchema = z.object({
   level: z.number().int().min(1).max(3),
   text: z.string().min(1).max(300),
+  type: z.enum(["single", "multiple", "scale", "ranking", "open", "prediction"]).default("single"),
   options: z.array(z.string().min(1)).min(2).max(6),
+  scaleMin: z.number().int().min(1).max(10).optional(),
+  scaleMax: z.number().int().min(1).max(10).optional(),
   category: z.string().min(1).max(50).optional(),
   active: z.boolean().optional(),
+}).superRefine((val, ctx) => {
+  if ((val.type === "scale" || val.type === "ranking") && val.options.length < 2) {
+    ctx.addIssue({ code: "custom", message: "Au moins 2 options requises pour ce type.", path: ["options"] });
+  }
+  if (val.type === "scale") {
+    if (val.scaleMin == null || val.scaleMax == null) {
+      ctx.addIssue({ code: "custom", message: "scaleMin et scaleMax requis pour type scale.", path: ["scaleMin"] });
+    } else if (val.scaleMin >= val.scaleMax) {
+      ctx.addIssue({ code: "custom", message: "scaleMin doit être < scaleMax.", path: ["scaleMax"] });
+    }
+  }
 });
 
 export type QuestionInput = z.infer<typeof questionSchema>;

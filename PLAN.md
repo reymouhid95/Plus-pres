@@ -103,11 +103,15 @@ Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 - [x] Migrations additives applicables sans interruption
 - [x] Validation : `typecheck` + 94 tests + `build` + 11 e2e verts
 
-## Phase E (suite) — Types de questions & modes (§12, §14, §23) (À FAIRE)
+## Phase E (suite) — Types de questions & modes (§12, §14, §23) (TERMINÉE)
 
-- [ ] Types de questions avancés : choix multiple, échelle, classement, ouverte, prédiction (moteur §14)
-- [ ] Modes de jeu distincts : Se découvrir, Devine ma réponse, Rigoler, Connexion (§12)
-- [ ] Remplir `Question.category` → dimensions §23 (Humour, Voyage, Mode de vie, Projets, Valeurs, Connaissance) + disclaimer non-scientifique
+- [x] Types de questions avancés : choix multiple, échelle (1-5), classement (drag-drop), ouverte, prédiction (moteur §14)
+- [x] Modes de jeu distincts : Se découvrir, Devine ma réponse, Rigoler, Connexion (§12)
+- [x] Catégories §12 mappées : Se découvrir, Rigoler, Connexion, Devine ma réponse
+- [x] Composant `QuestionRenderer` unifié : single, multiple, scale, ranking, open, prediction
+- [x] Seed 66 questions (12 par niveau) avec types variés : single, multiple, scale, ranking, open, prediction
+- [x] Validation : `typecheck` + 94 tests + `build` + 11 e2e verts
+- [x] Migration additive `20260927000002_question_types` à appliquer sur Neon
 
 ---
 

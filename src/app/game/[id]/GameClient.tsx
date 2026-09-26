@@ -24,6 +24,7 @@ import {
 import { toast } from "@/components/ui/Toaster";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Logo from "@/components/Logo";
+import { QuestionRenderer } from "@/components/QuestionRenderer";
 import { remainingMs } from "@/lib/timer";
 import { levelMeta } from "@/lib/levels";
 import {
@@ -40,8 +41,8 @@ type RoundState = {
   matched: boolean | null;
   startedAt: string | null;
   expiresAt: string | null;
-  question: { id: string; text: string; options: string[] };
-  myAnswer: string | null;
+  question: { id: string; text: string; type: "single" | "multiple" | "scale" | "ranking" | "open" | "prediction"; options: string[]; scaleMin?: number; scaleMax?: number };
+  myAnswer: string | string[] | number | null;
   partnerAnswered: boolean;
   answers: { userId: string; choice: string }[];
   reactions: { userId: string; emoji: string }[];
@@ -239,7 +240,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     fetchState();
   }
 
-  async function predict(choice: string) {
+  async function predict(choice: string | string[] | number) {
     if (!round) return;
     setPredicting(true);
     setError(null);
@@ -258,7 +259,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     fetchState();
   }
 
-  async function answer(choice: string) {
+  async function answer(choice: string | string[] | number) {
     if (!round) return;
     setAnswering(true);
     setError(null);
@@ -906,28 +907,20 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             )}
 
             {state.predictionsEnabled && !round.myPrediction ? (
-              <>
-                <p className="mt-4 text-sm font-medium text-fg">
-                  Que va répondre {partnerName}&nbsp;?
-                </p>
-                <div className="mt-3 flex flex-col gap-2.5">
-                  {round.question.options.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      data-testid="predict-option"
-                      onClick={() => predict(option)}
-                      disabled={predicting || timeUp}
-                      className="btn btn-secondary justify-start text-left disabled:opacity-60"
-                    >
-                      <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
-                        {String.fromCharCode(65 + round.question.options.indexOf(option))}
-                      </span>
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </>
+              <QuestionRenderer
+                question={{
+                  id: round.question.id,
+                  text: round.question.text,
+                  type: round.question.type,
+                  options: round.question.options,
+                  scaleMin: round.question.scaleMin,
+                  scaleMax: round.question.scaleMax,
+                }}
+                myAnswer={round.myPrediction}
+                disabled={predicting || timeUp}
+                onAnswer={predict}
+                testIdPrefix="predict"
+              />
             ) : round.myAnswer ? (
               <div className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4 text-center">
                 <p className="flex items-center justify-center gap-2 text-sm font-medium text-sage">
@@ -953,23 +946,19 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                     Tu as prédit «&nbsp;{round.myPrediction}&nbsp;» — à toi de répondre.
                   </p>
                 )}
-                <div className="mt-5 flex flex-col gap-2.5">
-                  {round.question.options.map((option) => (
-                    <button
-                      key={option}
-                      type="button"
-                      data-testid="answer-option"
-                      onClick={() => answer(option)}
-                      disabled={answering || timeUp}
-                      className="btn btn-secondary justify-start text-left disabled:opacity-60"
-                    >
-                      <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
-                        {String.fromCharCode(65 + round.question.options.indexOf(option))}
-                      </span>
-                      {option}
-                    </button>
-                  ))}
-                </div>
+                <QuestionRenderer
+                  question={{
+                    id: round.question.id,
+                    text: round.question.text,
+                    type: round.question.type,
+                    options: round.question.options,
+                    scaleMin: round.question.scaleMin,
+                    scaleMax: round.question.scaleMax,
+                  }}
+                  myAnswer={round.myAnswer}
+                  disabled={answering || timeUp}
+                  onAnswer={answer}
+                />
               </>
             )}
           </div>

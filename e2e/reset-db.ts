@@ -16,6 +16,9 @@ const db = new PrismaClient({
 
 async function main() {
   await db.answer.deleteMany();
+  await db.reaction.deleteMany();
+  await db.discussion.deleteMany();
+  await db.prediction.deleteMany();
   await db.round.deleteMany();
   await db.gameSession.deleteMany();
 }

@@ -18,6 +18,9 @@ async function main() {
       options: q.options,
       category: q.category ?? null,
       active: q.active ?? true,
+      type: q.type ?? "single",
+      scaleMin: q.scaleMin ?? null,
+      scaleMax: q.scaleMax ?? null,
     })),
   });
   console.log(`${questions.length} questions insérées.`);

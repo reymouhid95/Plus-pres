@@ -68,7 +68,10 @@ model Question {
   id        String   @id @default(cuid())
   level     Int
   text      String
-  options   String[]
+  type      String   @default("single") // single | multiple | scale | ranking | open | prediction
+  options   String[] // pour single, multiple, prediction
+  scaleMin  Int?     // pour scale (défaut 1)
+  scaleMax  Int?     // pour scale (défaut 5)
   category  String?
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
