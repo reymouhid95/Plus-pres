@@ -61,15 +61,34 @@ export function canDraw(input: {
 }
 
 /**
- * Répondre : manche non révélée, pas de doublon.
+ * Répondre : manche non révélée, prédiction faite si requise, pas de doublon.
  * L'expiration reste gérée par la route (effet de bord + payload `expired`).
  */
-export function canAnswer(input: { roundStatus: string; alreadyAnswered: boolean }): Guard {
+export function canAnswer(input: {
+  roundStatus: string;
+  alreadyAnswered: boolean;
+  predictionRequired: boolean;
+  hasPredicted: boolean;
+}): Guard {
   if (input.roundStatus !== ROUND_STATUS.PENDING) {
     return deny("Cette manche est déjà révélée.");
   }
+  if (input.predictionRequired && !input.hasPredicted) {
+    return deny("Prédisez d'abord la réponse de l'autre.");
+  }
   if (input.alreadyAnswered) {
     return deny("Vous avez déjà répondu à cette manche.");
+  }
+  return { ok: true };
+}
+
+/** Prédire : manche non révélée, pas de doublon (§18). */
+export function canPredict(input: { roundStatus: string; alreadyPredicted: boolean }): Guard {
+  if (input.roundStatus !== ROUND_STATUS.PENDING) {
+    return deny("Cette manche est déjà révélée.");
+  }
+  if (input.alreadyPredicted) {
+    return deny("Vous avez déjà prédit la réponse de l'autre.");
   }
   return { ok: true };
 }

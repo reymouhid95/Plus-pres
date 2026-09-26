@@ -41,6 +41,12 @@ export const reactSchema = z.object({
   emoji: z.enum(REACTION_EMOJIS),
 });
 
+/** Prédiction de la réponse de l'autre, avant de répondre (§18). */
+export const predictSchema = z.object({
+  roundId: z.string().min(1),
+  choice: z.string().min(1),
+});
+
 /** Action de conversation après une divergence (§20, §21). */
 export const discussSchema = z
   .object({
@@ -70,6 +76,7 @@ export type JoinInput = z.infer<typeof joinSchema>;
 export type GuestInput = z.infer<typeof guestSchema>;
 export type UpgradeInput = z.infer<typeof upgradeSchema>;
 export type ReactInput = z.infer<typeof reactSchema>;
+export type PredictInput = z.infer<typeof predictSchema>;
 export type DiscussInput = z.infer<typeof discussSchema>;
 
 export function normalizeCode(raw: string): string {

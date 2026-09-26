@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  Brain,
   Check,
   ClipboardCopy,
   Heart,
@@ -18,6 +19,7 @@ import {
   Sparkles,
   Timer,
   Users,
+  Zap,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toaster";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -44,6 +46,10 @@ type RoundState = {
   answers: { userId: string; choice: string }[];
   reactions: { userId: string; emoji: string }[];
   discussions: { userId: string; type: string; content: string | null }[];
+  myPrediction: string | null;
+  partnerPredicted: boolean;
+  predictions: { userId: string; choice: string }[];
+  predictionCorrect: boolean | null;
 };
 
 type SessionState = {
@@ -54,6 +60,7 @@ type SessionState = {
   currentLevel: number;
   maxRounds: number;
   roundsPlayed: number;
+  predictionsEnabled: boolean;
   turnUserId: string | null;
   host: { id: string; displayName: string; avatarEmoji: string };
   partner: { id: string; displayName: string; avatarEmoji: string } | null;
@@ -69,6 +76,7 @@ type SessionState = {
     mismatched: number;
     conversations: number;
     reactions: number;
+    knowledge: { correct: number; total: number };
   };
   /** Horodatage serveur : sert à corriger l'horloge locale du navigateur. */
   serverNow: number;
@@ -80,6 +88,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const [error, setError] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [answering, setAnswering] = useState(false);
+  const [predicting, setPredicting] = useState(false);
   const [starting, setStarting] = useState(false);
   const [rematching, setRematching] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -196,6 +205,12 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const myReaction = round?.reactions.find((entry) => entry.userId === userId)?.emoji ?? null;
   const partnerReaction =
     round?.reactions.find((entry) => entry.userId !== userId)?.emoji ?? null;
+  const myChoice = round?.answers.find((entry) => entry.userId === userId)?.choice ?? null;
+  const theirChoice = round?.answers.find((entry) => entry.userId !== userId)?.choice ?? null;
+  const partnerPrediction =
+    round?.predictions.find((entry) => entry.userId !== userId) ?? null;
+  const partnerCorrect =
+    partnerPrediction && myChoice ? partnerPrediction.choice === myChoice : null;
   const myDiscussion = round?.discussions.find((entry) => entry.userId === userId) ?? null;
   const partnerDiscussion =
     round?.discussions.find((entry) => entry.userId !== userId) ?? null;
@@ -219,6 +234,25 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     if (!res.ok) {
       setError(data.error);
       toast(data.error ?? "Impossible de tirer une carte.", "error");
+      return;
+    }
+    fetchState();
+  }
+
+  async function predict(choice: string) {
+    if (!round) return;
+    setPredicting(true);
+    setError(null);
+    const res = await fetch(`/api/sessions/${sessionId}/predict`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roundId: round.id, choice }),
+    });
+    const data = await res.json();
+    setPredicting(false);
+    if (!res.ok) {
+      setError(data.error);
+      toast(data.error ?? "Prédiction impossible.", "error");
       return;
     }
     fetchState();
@@ -503,6 +537,24 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                   {state.results.mismatched}
                 </dd>
               </div>
+              <div className="flex items-center justify-between gap-3" data-testid="result-knowledge">
+                <dt className="flex items-center gap-2 text-sm text-fg">
+                  <Brain className="size-4 text-accent" />
+                  Bien deviné
+                </dt>
+                <dd className="font-display text-xl font-semibold tabular-nums text-fg">
+                  {state.results.knowledge.correct}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3" data-testid="result-surprises">
+                <dt className="flex items-center gap-2 text-sm text-fg">
+                  <Zap className="size-4 text-gold" />
+                  Surprises
+                </dt>
+                <dd className="font-display text-xl font-semibold tabular-nums text-fg">
+                  {state.results.knowledge.total - state.results.knowledge.correct}
+                </dd>
+              </div>
               <div
                 className="flex items-center justify-between gap-3"
                 data-testid="result-conversations"
@@ -669,6 +721,37 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
               })}
             </div>
 
+            {/* Connaissance mutuelle (§18) */}
+            {state.predictionsEnabled && (
+              <div
+                data-testid="prediction-result"
+                className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4 text-left"
+              >
+                {round.predictionCorrect === true ? (
+                  <p className="text-sm font-medium text-fg">
+                    🎯 Bien deviné&nbsp;!{" "}
+                    <span className="font-normal text-muted">
+                      Tu connaissais la réponse de {partnerName}.
+                    </span>
+                  </p>
+                ) : round.predictionCorrect === false ? (
+                  <p className="text-sm font-medium text-fg">
+                    😄 Raté&nbsp;!{" "}
+                    <span className="font-normal text-muted">
+                      Tu pensais «&nbsp;{round.myPrediction}&nbsp;», {partnerName} a choisi
+                      «&nbsp;{theirChoice}&nbsp;».
+                    </span>
+                  </p>
+                ) : null}
+                {partnerPrediction && (
+                  <p className="mt-1.5 text-sm text-muted">
+                    {partnerName} pensait «&nbsp;{partnerPrediction.choice}&nbsp;» —{" "}
+                    {partnerCorrect ? "bien deviné." : "raté."}
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Réactions rapides (§19) */}
             <div className="mt-6 border-t border-line pt-5">
               <p className="text-xs uppercase tracking-[0.16em] text-muted">Réagir</p>
@@ -822,7 +905,30 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
               </div>
             )}
 
-            {round.myAnswer ? (
+            {state.predictionsEnabled && !round.myPrediction ? (
+              <>
+                <p className="mt-4 text-sm font-medium text-fg">
+                  Que va répondre {partnerName}&nbsp;?
+                </p>
+                <div className="mt-3 flex flex-col gap-2.5">
+                  {round.question.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      data-testid="predict-option"
+                      onClick={() => predict(option)}
+                      disabled={predicting || timeUp}
+                      className="btn btn-secondary justify-start text-left disabled:opacity-60"
+                    >
+                      <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
+                        {String.fromCharCode(65 + round.question.options.indexOf(option))}
+                      </span>
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : round.myAnswer ? (
               <div className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4 text-center">
                 <p className="flex items-center justify-center gap-2 text-sm font-medium text-sage">
                   <Check className="size-4" />
@@ -841,23 +947,30 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 )}
               </div>
             ) : (
-              <div className="mt-5 flex flex-col gap-2.5">
-                {round.question.options.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    data-testid="answer-option"
-                    onClick={() => answer(option)}
-                    disabled={answering || timeUp}
-                    className="btn btn-secondary justify-start text-left disabled:opacity-60"
-                  >
-                    <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
-                      {String.fromCharCode(65 + round.question.options.indexOf(option))}
-                    </span>
-                    {option}
-                  </button>
-                ))}
-              </div>
+              <>
+                {state.predictionsEnabled && round.myPrediction && (
+                  <p className="mt-4 text-sm text-muted">
+                    Tu as prédit «&nbsp;{round.myPrediction}&nbsp;» — à toi de répondre.
+                  </p>
+                )}
+                <div className="mt-5 flex flex-col gap-2.5">
+                  {round.question.options.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      data-testid="answer-option"
+                      onClick={() => answer(option)}
+                      disabled={answering || timeUp}
+                      className="btn btn-secondary justify-start text-left disabled:opacity-60"
+                    >
+                      <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
+                        {String.fromCharCode(65 + round.question.options.indexOf(option))}
+                      </span>
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         )}

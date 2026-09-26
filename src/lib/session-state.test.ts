@@ -3,6 +3,7 @@ import {
   canAnswer,
   canDraw,
   canInteract,
+  canPredict,
   canStart,
   clientSessionStatus,
 } from "./session-state";
@@ -64,20 +65,65 @@ describe("canDraw", () => {
 });
 
 describe("canAnswer", () => {
+  const base = {
+    roundStatus: "pending",
+    alreadyAnswered: false,
+    predictionRequired: true,
+    hasPredicted: true,
+  };
+
   it("autorise une première réponse sur une manche en attente", () => {
-    expect(canAnswer({ roundStatus: "pending", alreadyAnswered: false })).toEqual({ ok: true });
+    expect(canAnswer(base)).toEqual({ ok: true });
   });
 
   it("refuse sur une manche déjà révélée", () => {
-    expect(canAnswer({ roundStatus: "revealed", alreadyAnswered: false })).toEqual({
+    expect(canAnswer({ ...base, roundStatus: "revealed" })).toEqual({
       ok: false,
       error: "Cette manche est déjà révélée.",
       status: 400,
     });
   });
 
+  it("exige la prédiction quand le mode est actif", () => {
+    expect(canAnswer({ ...base, hasPredicted: false })).toEqual({
+      ok: false,
+      error: "Prédisez d'abord la réponse de l'autre.",
+      status: 400,
+    });
+  });
+
+  it("laisse répondre sans prédiction quand le mode est coupé", () => {
+    expect(
+      canAnswer({ ...base, predictionRequired: false, hasPredicted: false }),
+    ).toEqual({ ok: true });
+  });
+
   it("refuse un doublon de réponse", () => {
-    expect(canAnswer({ roundStatus: "pending", alreadyAnswered: true }).ok).toBe(false);
+    expect(canAnswer({ ...base, alreadyAnswered: true }).ok).toBe(false);
+  });
+});
+
+describe("canPredict", () => {
+  it("autorise une première prédiction sur une manche en attente", () => {
+    expect(canPredict({ roundStatus: "pending", alreadyPredicted: false })).toEqual({
+      ok: true,
+    });
+  });
+
+  it("refuse sur une manche déjà révélée", () => {
+    expect(canPredict({ roundStatus: "revealed", alreadyPredicted: false }).ok).toBe(
+      false,
+    );
+  });
+
+  it("refuse un doublon de prédiction", () => {
+    expect(
+      canPredict({ roundStatus: "pending", alreadyPredicted: true }),
+    ).toEqual({
+      ok: false,
+      error: "Vous avez déjà prédit la réponse de l'autre.",
+      status: 400,
+    });
   });
 });
 

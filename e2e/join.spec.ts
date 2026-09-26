@@ -75,6 +75,12 @@ test.describe("Invitation", () => {
       // Une manche complète, même choix → alignés.
       await pageA.getByTestId("start-session").click();
       await pageA.getByTestId("draw").click();
+      await expect(pageA.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+      await pageA.getByTestId("predict-option").first().click();
+      await expect(pageGuest.getByTestId("predict-option")).toHaveCount(4, {
+        timeout: 20_000,
+      });
+      await pageGuest.getByTestId("predict-option").first().click();
       await expect(pageA.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
       await pageA.getByTestId("answer-option").first().click();
       await expect(pageGuest.getByTestId("answer-option")).toHaveCount(4, {

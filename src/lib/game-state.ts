@@ -12,6 +12,7 @@ export type GameState = {
   currentLevel: number;
   maxRounds: number;
   roundsPlayed: number;
+  predictionsEnabled: boolean;
   turnUserId: string | null;
   host: { id: string; displayName: string; avatarEmoji: string };
   partner: { id: string; displayName: string; avatarEmoji: string } | null;
@@ -28,6 +29,11 @@ export type GameState = {
     answers: { userId: string; choice: string }[];
     reactions: { userId: string; emoji: string }[];
     discussions: { userId: string; type: string; content: string | null }[];
+    myPrediction: string | null;
+    partnerPredicted: boolean;
+    predictions: { userId: string; choice: string }[];
+    /** Ma prédiction était-elle juste ? (reveal uniquement) */
+    predictionCorrect: boolean | null;
   } | null;
   compatibility: {
     percentage: number;
@@ -41,6 +47,8 @@ export type GameState = {
     mismatched: number;
     conversations: number;
     reactions: number;
+    /** Connaissance mutuelle (§42) : prédictions justes sur prédictions faites. */
+    knowledge: { correct: number; total: number };
   };
   /** Horodatage serveur, pour que le compte à rebours ne dépende pas de l'horloge client. */
   serverNow: number;
@@ -82,6 +90,7 @@ export async function buildGameState(sessionId: string, userId: string): Promise
         include: {
           question: true,
           answers: true,
+          predictions: { select: { userId: true, choice: true } },
           reactions: { select: { userId: true, emoji: true } },
           discussions: { select: { userId: true, type: true, content: true } },
         },
@@ -90,14 +99,32 @@ export async function buildGameState(sessionId: string, userId: string): Promise
   });
   if (!full) return null;
 
-  const [conversationRounds, reactionCount] = await Promise.all([
+  const [conversationRounds, reactionCount, revealedRounds] = await Promise.all([
     db.discussion.findMany({
       where: { round: { sessionId } },
       select: { roundId: true },
       distinct: ["roundId"],
     }),
     db.reaction.count({ where: { round: { sessionId } } }),
+    db.round.findMany({
+      where: { sessionId, status: "revealed" },
+      select: {
+        answers: { select: { userId: true, choice: true } },
+        predictions: { select: { userId: true, choice: true } },
+      },
+    }),
   ]);
+
+  // Connaissance mutuelle (§42) : pour chaque prédiction, comparer au choix réel de l'autre.
+  let knowledgeCorrect = 0;
+  let knowledgeTotal = 0;
+  for (const revealed of revealedRounds) {
+    for (const prediction of revealed.predictions) {
+      const actual = revealed.answers.find((answer) => answer.userId !== prediction.userId);
+      knowledgeTotal += 1;
+      if (actual && actual.choice === prediction.choice) knowledgeCorrect += 1;
+    }
+  }
 
   const hostMember =
     full.duo.members.find((member) => member.role === DUO_ROLES.HOST) ?? full.duo.members[0] ?? null;
@@ -112,6 +139,8 @@ export async function buildGameState(sessionId: string, userId: string): Promise
   let safeCurrentRound: GameState["currentRound"] = null;
   if (currentRound) {
     const bothAnswered = currentRound.status === "revealed";
+    const myPrediction = currentRound.predictions.find((p) => p.userId === userId)?.choice ?? null;
+    const theirAnswer = currentRound.answers.find((a) => a.userId !== userId)?.choice ?? null;
     safeCurrentRound = {
       id: currentRound.id,
       level: currentRound.level,
@@ -142,6 +171,14 @@ export async function buildGameState(sessionId: string, userId: string): Promise
             content: discussion.content,
           }))
         : [],
+      // Ma prédiction m'appartient (visible) ; celle de l'autre reste cachée avant le reveal.
+      myPrediction,
+      partnerPredicted: currentRound.predictions.some((p) => p.userId !== userId),
+      predictions: bothAnswered
+        ? currentRound.predictions.map((p) => ({ userId: p.userId, choice: p.choice }))
+        : [],
+      predictionCorrect:
+        bothAnswered && myPrediction !== null ? myPrediction === theirAnswer : null,
     };
   }
 
@@ -154,6 +191,7 @@ export async function buildGameState(sessionId: string, userId: string): Promise
     currentLevel: full.currentLevel,
     maxRounds: full.maxRounds,
     roundsPlayed: compatibility.totalRounds,
+    predictionsEnabled: full.predictionsEnabled,
     turnUserId: full.turnUserId,
     host,
     partner,
@@ -164,6 +202,7 @@ export async function buildGameState(sessionId: string, userId: string): Promise
       mismatched: compatibility.totalRounds - compatibility.matchedRounds,
       conversations: conversationRounds.length,
       reactions: reactionCount,
+      knowledge: { correct: knowledgeCorrect, total: knowledgeTotal },
     },
     serverNow: Date.now(),
   };

@@ -5,6 +5,7 @@ import {
   guestSchema,
   joinSchema,
   normalizeCode,
+  predictSchema,
   profileSchema,
   reactSchema,
   registerSchema,
@@ -104,6 +105,14 @@ describe("reactSchema", () => {
     expect(reactSchema.safeParse({ roundId: "r1", emoji: "🔥" }).success).toBe(true);
     expect(reactSchema.safeParse({ roundId: "r1", emoji: "💩" }).success).toBe(false);
     expect(reactSchema.safeParse({ roundId: "", emoji: "❤️" }).success).toBe(false);
+  });
+});
+
+describe("predictSchema", () => {
+  it("exige une manche et un choix non vide", () => {
+    expect(predictSchema.safeParse({ roundId: "r1", choice: "Dakar" }).success).toBe(true);
+    expect(predictSchema.safeParse({ roundId: "r1", choice: "" }).success).toBe(false);
+    expect(predictSchema.safeParse({ roundId: "", choice: "Dakar" }).success).toBe(false);
   });
 });
 

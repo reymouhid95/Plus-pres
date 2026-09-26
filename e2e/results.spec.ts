@@ -2,9 +2,13 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { createSession, register, uniqueEmail } from "./helpers";
 
-/** Joue une manche : le tireur pioche, les deux répondent, la révélation arrive. */
+/** Joue une manche : prédictions (toujours le premier choix), réponses, révélation. */
 async function playRound(drawer: Page, other: Page, sameChoice: boolean): Promise<void> {
   await drawer.getByTestId("draw").click();
+  await expect(drawer.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+  await drawer.getByTestId("predict-option").first().click();
+  await expect(other.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+  await other.getByTestId("predict-option").first().click();
   await expect(drawer.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
   await drawer.getByTestId("answer-option").first().click();
   await expect(other.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
@@ -36,7 +40,11 @@ test.describe("Boucle cœur", () => {
       await expect(pageA.getByTestId("progress")).toContainText("Carte 1 / 6");
 
       // Manches 1-2 alignées, 3-4 différentes, 5-6 alignées. Le tireur alterne.
+      // Prédictions toujours sur le premier choix → connaissance 10/12.
       await playRound(pageA, pageB, true);
+      await expect(pageA.getByTestId("prediction-result")).toContainText("Bien deviné", {
+        timeout: 15_000,
+      });
 
       // Réactions croisées sur la première révélation.
       await pageA.getByTestId("reaction-❤️").click();
@@ -61,6 +69,10 @@ test.describe("Boucle cœur", () => {
 
       // Dernière carte : la révélation bascule directement au bilan (§13, §22).
       await pageB.getByTestId("draw").click();
+      await expect(pageB.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+      await pageB.getByTestId("predict-option").first().click();
+      await expect(pageA.getByTestId("predict-option")).toHaveCount(4, { timeout: 20_000 });
+      await pageA.getByTestId("predict-option").first().click();
       await expect(pageB.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
       await pageB.getByTestId("answer-option").first().click();
       await expect(pageA.getByTestId("answer-option")).toHaveCount(4, { timeout: 20_000 });
@@ -71,6 +83,8 @@ test.describe("Boucle cœur", () => {
       await expect(pageB.getByTestId("results")).toBeVisible({ timeout: 30_000 });
       await expect(pageA.getByTestId("result-common")).toContainText("4");
       await expect(pageA.getByTestId("result-different")).toContainText("2");
+      await expect(pageA.getByTestId("result-knowledge")).toContainText("10");
+      await expect(pageA.getByTestId("result-surprises")).toContainText("2");
       await expect(pageA.getByTestId("result-conversations")).toContainText("1");
       await expect(pageA.getByTestId("result-reactions")).toContainText("2");
 

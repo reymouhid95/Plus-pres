@@ -73,10 +73,16 @@ Contrat client inchangé (`{ id }` au join, `GameState` identique).
 Note : route `/level` et avancement manuel supprimés (remplacés par la progression auto).
 Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 
-## Phase D — Devine ma réponse (§12.2, §18, §42)
+## Phase D — Devine ma réponse (§12.2, §18, §42) (TERMINÉE)
 
-- [ ] Prédiction en 2 étapes (modèle `Prediction`), indicateur **Connaissance mutuelle** séparé de la compatibilité
-- [ ] e2e du mode prédiction
+- [x] Prédiction en 2 étapes : chaque manche = prédire (« Que va répondre l'autre ? ») puis répondre, verrouillage serveur identique aux réponses (modèle `Prediction`, route `predict`, garde `canPredict`)
+- [x] Indicateur **Connaissance mutuelle** séparé de la compatibilité (`results.knowledge`, calculé à la lecture)
+- [x] Reveal §18 : « 🎯 Bien deviné ! » / « 😄 Raté ! Tu pensais X, elle a choisi Y » + prédiction du partenaire
+- [x] Bilan §22 complété : « Bien deviné » et « Surprises » (= prédictions ratées)
+- [x] `GameSession.predictionsEnabled` (défaut vrai) : la Phase E pourra désactiver la prédiction pour le mode « Se découvrir » sans migration
+- [x] Migration **additive** `20260926160000_predictions` (à appliquer sur Neon, sans interruption)
+- [x] e2e : prédictions dans tous les parcours + connaissance 10/12 et surprises 2 vérifiées
+- [x] Validation : `typecheck` + 90 tests + `build` + 11 e2e verts
 
 ## Phase E — Contenu & modes (§12, §14, §23)
 
