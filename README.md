@@ -128,4 +128,10 @@ par le workflow.
    (verrouillage serveur), reveal « Bien deviné / Raté », 2ᵉ métrique Connaissance
    mutuelle, bilan complété (Bien deviné, Surprises). Migration **additive**
    `20260926160000_predictions` à appliquer sur Neon
-8. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
+8. **Contenu éditable (Phase E — admin)** — fait : `Question.active`, `User.role`,
+   CRUD + import/export JSON/CSV via `/admin/questions`, 72 questions
+   catégorisées (Se découvrir, Rigoler, Connexion, Devine ma réponse).
+   Migrations additives `20260927000000_editable_content` +
+   `20260927000001_question_created_at` à appliquer sur Neon
+9. **Moments & Histoire (Phase F)** — §24–28 : découverte du jour, moments,
+   Notre histoire (timeline multi-sessions), challenges, historique complet

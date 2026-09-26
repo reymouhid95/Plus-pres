@@ -17,6 +17,7 @@ async function main() {
       text: q.text,
       options: q.options,
       category: q.category ?? null,
+      active: q.active ?? true,
     })),
   });
   console.log(`${questions.length} questions insérées.`);

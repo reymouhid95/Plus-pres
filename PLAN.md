@@ -57,6 +57,8 @@ Contrat client inchangé (`{ id }` au join, `GameState` identique).
 - [x] e2e : parcours invité complet (lien → pseudo → jeu → conversion → reconnexion, historique conservé)
 - [x] Validation : `typecheck` + 74 tests + `build` + 10 e2e verts
 
+---
+
 ## Phase C — Boucle cœur (§17, §19, §20, §21, §22, §43) (TERMINÉE)
 
 - [x] Reveal §17 : « ❤️ Vous êtes alignés » / « ✨ Vous avez choisi différemment » (neutre, §43.3)
@@ -73,6 +75,8 @@ Contrat client inchangé (`{ id }` au join, `GameState` identique).
 Note : route `/level` et avancement manuel supprimés (remplacés par la progression auto).
 Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 
+---
+
 ## Phase D — Devine ma réponse (§12.2, §18, §42) (TERMINÉE)
 
 - [x] Prédiction en 2 étapes : chaque manche = prédire (« Que va répondre l'autre ? ») puis répondre, verrouillage serveur identique aux réponses (modèle `Prediction`, route `predict`, garde `canPredict`)
@@ -84,14 +88,30 @@ Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 - [x] e2e : prédictions dans tous les parcours + connaissance 10/12 et surprises 2 vérifiées
 - [x] Validation : `typecheck` + 90 tests + `build` + 11 e2e verts
 
-## Phase E — Contenu & modes (§12, §14, §23)
+---
 
-- [ ] Types de questions : choix multiple, échelle, classement, ouverte, prédiction (moteur §14)
-- [ ] Modes : Se découvrir, Devine ma réponse, Rigoler, Connexion (§12)
+## Phase E — Admin contenu (§40 SHOULD) (TERMINÉE)
+
+- [x] `Question.active` pour activer/désactiver les questions
+- [x] `User.role` (user | admin) pour l'interface d'administration
+- [x] CRUD questions via `/api/admin/questions` (GET, POST, PUT, DELETE)
+- [x] Import JSON/CSV via `/api/admin/import` (upsert optionnel)
+- [x] Export JSON depuis l'interface admin
+- [x] Page admin `/admin/questions` protégée (role=admin)
+- [x] 72 questions avec 4 catégories : Se découvrir, Rigoler, Connexion, Devine ma réponse (niveau 3)
+- [x] Schéma : `Question.createdAt`, `Question.category`, `Question.active`, `User.role`
+- [x] Migrations additives applicables sans interruption
+- [x] Validation : `typecheck` + 94 tests + `build` + 11 e2e verts
+
+## Phase E (suite) — Types de questions & modes (§12, §14, §23) (À FAIRE)
+
+- [ ] Types de questions avancés : choix multiple, échelle, classement, ouverte, prédiction (moteur §14)
+- [ ] Modes de jeu distincts : Se découvrir, Devine ma réponse, Rigoler, Connexion (§12)
 - [ ] Remplir `Question.category` → dimensions §23 (Humour, Voyage, Mode de vie, Projets, Valeurs, Connaissance) + disclaimer non-scientifique
-- [ ] Admin contenu §40 SHOULD : `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
 
-## Phase F — Moments & Histoire (§24, §25, §26, §27, §28)
+---
+
+## Phase F — Moments & Histoire (§24, §25, §26, §27, §28) (À FAIRE)
 
 - [ ] Découverte du jour §24 (synthèse factuelle de fin de session)
 - [ ] Moments §25 : titre, texte, question d'origine, réponses, photo facultative, date
@@ -99,7 +119,9 @@ Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 - [ ] Challenges §27 : créer, terminer
 - [ ] Historique complet §28 : sessions, résultats, moments, challenges, stats
 
-## Phase G — Beta & acceptation MVP (§36, §38, §39, §40, §44)
+---
+
+## Phase G — Beta & acceptation MVP (§36, §38, §39, §40, §44) (À FAIRE)
 
 - [ ] Sécurité : rate limiting, sanitation des contenus, audit des accès (§36)
 - [ ] Analytics §38 : activation, engagement, interaction, rétention J+1/J+7/J+30, viral

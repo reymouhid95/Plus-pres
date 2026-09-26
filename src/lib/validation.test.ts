@@ -7,6 +7,7 @@ import {
   normalizeCode,
   predictSchema,
   profileSchema,
+  questionSchema,
   reactSchema,
   registerSchema,
   upgradeSchema,
@@ -97,6 +98,33 @@ describe("upgradeSchema", () => {
     expect(
       upgradeSchema.safeParse({ email: "sarah@exemple.fr", password: "court" }).success,
     ).toBe(false);
+  });
+});
+
+describe("questionSchema", () => {
+  const base = {
+    level: 1,
+    text: "Test ?",
+    options: ["A", "B"],
+    category: "Se découvrir",
+    active: true,
+  };
+
+  it("accepte une question valide", () => {
+    expect(questionSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("refuse un niveau invalide", () => {
+    expect(questionSchema.safeParse({ ...base, level: 0 }).success).toBe(false);
+    expect(questionSchema.safeParse({ ...base, level: 4 }).success).toBe(false);
+  });
+
+  it("exige au moins 2 options", () => {
+    expect(questionSchema.safeParse({ ...base, options: ["A"] }).success).toBe(false);
+  });
+
+  it("limite à 6 options max", () => {
+    expect(questionSchema.safeParse({ ...base, options: ["A", "B", "C", "D", "E", "F", "G"] }).success).toBe(false);
   });
 });
 

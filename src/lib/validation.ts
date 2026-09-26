@@ -80,6 +80,17 @@ export type ReactInput = z.infer<typeof reactSchema>;
 export type PredictInput = z.infer<typeof predictSchema>;
 export type DiscussInput = z.infer<typeof discussSchema>;
 
+/** Question CRUD (admin). */
+export const questionSchema = z.object({
+  level: z.number().int().min(1).max(3),
+  text: z.string().min(1).max(300),
+  options: z.array(z.string().min(1)).min(2).max(6),
+  category: z.string().min(1).max(50).optional(),
+  active: z.boolean().optional(),
+});
+
+export type QuestionInput = z.infer<typeof questionSchema>;
+
 export function normalizeCode(raw: string): string {
   return raw.trim().toUpperCase();
 }

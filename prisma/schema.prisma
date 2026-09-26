@@ -12,6 +12,7 @@ model User {
   email        String?  @unique // null pour un joueur invité (auth progressive)
   passwordHash String? // null pour un joueur invité
   isGuest      Boolean  @default(false)
+  role         String   @default("user") // user | admin
   displayName  String
   avatarEmoji  String   @default("🙂")
   bio          String?
@@ -64,13 +65,15 @@ model GameSession {
 }
 
 model Question {
-  id       String   @id @default(cuid())
-  level    Int
-  text     String
-  options  String[]
-  category String?
+  id        String   @id @default(cuid())
+  level     Int
+  text      String
+  options   String[]
+  category  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
 
-  rounds   Round[]
+  rounds    Round[]
 }
 
 model Round {
