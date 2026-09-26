@@ -15,7 +15,12 @@ export async function POST(req: Request) {
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   const userId = (session.user as any).id as string;
 
-  const parsed = upgradeSchema.safeParse(await req.json());
+  let parsed: ReturnType<typeof upgradeSchema.safeParse>;
+  try {
+    parsed = upgradeSchema.safeParse(await req.json());
+  } catch {
+    return NextResponse.json({ error: "Champs invalides." }, { status: 400 });
+  }
   if (!parsed.success) {
     return NextResponse.json({ error: "Champs invalides." }, { status: 400 });
   }
