@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { pickUnusedQuestion } from "@/lib/questions";
+import { expiryDate } from "@/lib/timer";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,8 +44,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: "Aucune question disponible pour ce niveau." }, { status: 400 });
   }
 
+  const now = new Date();
   const round = await db.round.create({
-    data: { sessionId: gameSession.id, questionId: question.id, level: gameSession.currentLevel },
+    data: {
+      sessionId: gameSession.id,
+      questionId: question.id,
+      level: gameSession.currentLevel,
+      startedAt: now,
+      expiresAt: expiryDate(gameSession.currentLevel, now),
+    },
   });
 
   return NextResponse.json({ id: round.id });

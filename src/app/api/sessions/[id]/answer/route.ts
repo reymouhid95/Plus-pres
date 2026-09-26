@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { answerSchema } from "@/lib/validation";
+import { resolveExpiredRounds } from "@/lib/expiry";
+import { isExpired } from "@/lib/timer";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,6 +30,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
   if (round.status === "revealed") {
     return NextResponse.json({ error: "Cette manche est déjà révélée." }, { status: 400 });
+  }
+  if (isExpired(round.expiresAt, Date.now())) {
+    await resolveExpiredRounds(gameSession.id);
+    return NextResponse.json({ error: "Temps écoulé pour cette question.", expired: true }, { status: 400 });
   }
   if (round.answers.some((a) => a.userId === userId)) {
     return NextResponse.json({ error: "Vous avez déjà répondu à cette manche." }, { status: 400 });

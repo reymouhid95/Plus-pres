@@ -57,6 +57,8 @@ model Round {
   level      Int
   status     String   @default("pending") // pending | revealed
   matched    Boolean?
+  startedAt  DateTime?
+  expiresAt  DateTime?
   createdAt  DateTime @default(now())
 
   answers    Answer[]

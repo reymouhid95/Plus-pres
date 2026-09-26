@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -11,12 +11,14 @@ import {
   PartyPopper,
   Play,
   RefreshCw,
+  Timer,
   X,
 } from "lucide-react";
 import { toast } from "@/components/ui/Toaster";
 import { Skeleton } from "@/components/ui/Skeleton";
 import ProgressRing from "@/components/ui/ProgressRing";
 import Logo from "@/components/Logo";
+import { remainingMs } from "@/lib/timer";
 
 const LEVEL_META: Record<number, { label: string; color: string; hint: string }> = {
   1: { label: "Découverte", color: "#C7973E", hint: "Des questions simples pour briser la glace." },
@@ -29,6 +31,8 @@ type RoundState = {
   level: number;
   status: "pending" | "revealed";
   matched: boolean | null;
+  startedAt: string | null;
+  expiresAt: string | null;
   question: { id: string; text: string; options: string[] };
   myAnswer: string | null;
   partnerAnswered: boolean;
@@ -50,6 +54,8 @@ type SessionState = {
     matchedRounds: number;
     byLevel: Record<number, number>;
   };
+  /** Horodatage serveur : sert à corriger l'horloge locale du navigateur. */
+  serverNow: number;
 };
 
 export default function GameClient({ sessionId, userId }: { sessionId: string; userId: string }) {
@@ -58,20 +64,67 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const [drawing, setDrawing] = useState(false);
   const [answering, setAnswering] = useState(false);
   const [copied, setCopied] = useState(false);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [, forceTick] = useState(0);
 
   const fetchState = useCallback(async () => {
     const res = await fetch(`/api/sessions/${sessionId}`);
     if (res.ok) setState(await res.json());
   }, [sessionId]);
 
+  const hasPendingRound = Boolean(state?.currentRound?.status === "pending");
+
+  // Le compte à rebours se recalcule localement à partir de l'horodatage
+  // serveur : aucun message réseau n'est nécessaire entre deux mises à jour.
   useEffect(() => {
-    fetchState();
-    pollRef.current = setInterval(fetchState, 2500);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+    if (!hasPendingRound) return;
+    const timer = setInterval(() => forceTick((value) => value + 1), 250);
+    return () => clearInterval(timer);
+  }, [hasPendingRound]);
+
+  useEffect(() => {
+    let disposed = false;
+    let failures = 0;
+    let source: EventSource | null = null;
+    let poll: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (poll || disposed) return;
+      poll = setInterval(fetchState, 2500);
     };
-  }, [fetchState]);
+
+    fetchState();
+
+    if (typeof window !== "undefined" && "EventSource" in window) {
+      source = new EventSource(`/api/sessions/${sessionId}/stream`);
+      source.onopen = () => {
+        failures = 0;
+      };
+      source.onmessage = (event) => {
+        failures = 0;
+        try {
+          const payload = JSON.parse(event.data) as SessionState;
+          if (!disposed) setState(payload);
+        } catch {
+          // Trame illisible : la suivante rattrapera l'état.
+        }
+      };
+      source.onerror = () => {
+        failures += 1;
+        if (failures >= 3) {
+          source?.close();
+          startPolling();
+        }
+      };
+    } else {
+      startPolling();
+    }
+
+    return () => {
+      disposed = true;
+      source?.close();
+      if (poll) clearInterval(poll);
+    };
+  }, [fetchState, sessionId]);
 
   if (!state) {
     return (
@@ -89,6 +142,13 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const meta = LEVEL_META[state.currentLevel] ?? LEVEL_META[1];
   const round = state.currentRound;
   const gameCode = state.code;
+  // Écart entre l'horloge serveur et celle du navigateur, recalculé à chaque
+  // état reçu : le minuteur reste juste même si l'appareil est décalé.
+  const clockSkew = state.serverNow - Date.now();
+  const remaining = round?.expiresAt
+    ? remainingMs(new Date(round.expiresAt), Date.now() + clockSkew)
+    : null;
+  const timeUp = remaining === 0;
 
   async function draw() {
     setDrawing(true);
@@ -344,6 +404,25 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
               {round.question.text}
             </p>
 
+            {remaining !== null && (
+              <div
+                data-testid="countdown"
+                className="mt-4 flex items-center justify-between rounded-2xl border border-line bg-canvas/60 px-4 py-2.5"
+                role="timer"
+                aria-live="polite"
+              >
+                <span className="flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.14em] text-muted">
+                  <Timer className="size-3.5" />
+                  {timeUp ? "Temps écoulé" : "Temps restant"}
+                </span>
+                <span
+                  className={`font-display text-lg font-semibold tabular-nums ${timeUp ? "text-accent" : "text-fg"}`}
+                >
+                  {timeUp ? "0:00" : formatCountdown(remaining)}
+                </span>
+              </div>
+            )}
+
             {round.myAnswer ? (
               <div className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4 text-center">
                 <p className="flex items-center justify-center gap-2 text-sm font-medium text-sage">
@@ -370,7 +449,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                     type="button"
                     data-testid="answer-option"
                     onClick={() => answer(option)}
-                    disabled={answering}
+                    disabled={answering || timeUp}
                     className="btn btn-secondary justify-start text-left disabled:opacity-60"
                   >
                     <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
@@ -465,6 +544,13 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
       )}
     </main>
   );
+}
+
+function formatCountdown(ms: number): string {
+  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function TopBar({
