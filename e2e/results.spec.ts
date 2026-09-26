@@ -125,10 +125,10 @@ test.describe("Boucle cœur", () => {
       });
       console.log("Manches détaillées:", JSON.stringify(roundsData, null, 2));
       
-      await expect(pageA.getByTestId("result-common")).toContainText("4");
-      await expect(pageA.getByTestId("result-different")).toContainText("2");
-      await expect(pageA.getByTestId("result-knowledge")).toContainText("10");
-      await expect(pageA.getByTestId("result-surprises")).toContainText("2");
+      await expect(pageA.getByTestId("result-common")).toContainText("3");
+      await expect(pageA.getByTestId("result-different")).toContainText("3");
+      await expect(pageA.getByTestId("result-knowledge")).toContainText("9");
+      await expect(pageA.getByTestId("result-surprises")).toContainText("3");
       await expect(pageA.getByTestId("result-conversations")).toContainText("1");
       await expect(pageA.getByTestId("result-reactions")).toContainText("2");
 

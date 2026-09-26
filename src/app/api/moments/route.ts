@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isDuoMember } from "@/lib/duo";
 import { createMoment, listMomentsForDuo } from "@/lib/moments";
+import { sanitizeText, sanitizeForDisplay, sanitizeUrl } from "@/lib/sanitize";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -45,12 +46,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Vous ne faites pas partie de ce duo." }, { status: 403 });
   }
 
+  // Sanitize user inputs
+  const safeTitle = sanitizeText(title).slice(0, 100);
+  const safeContent = content ? sanitizeForDisplay(content).slice(0, 2000) : null;
+  const safeImageUrl = imageUrl ? sanitizeUrl(imageUrl) : null;
+
+  if (!safeTitle) {
+    return NextResponse.json({ error: "Titre invalide." }, { status: 400 });
+  }
+
   const moment = await createMoment({
     duoId,
     sessionId: sessionId ?? null,
-    title,
-    content: content ?? null,
-    imageUrl: imageUrl ?? null,
+    title: safeTitle,
+    content: safeContent,
+    imageUrl: safeImageUrl,
     questionId: questionId ?? null,
   });
 

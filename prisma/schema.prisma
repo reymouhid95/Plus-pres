@@ -207,3 +207,20 @@ model DailyDiscovery {
 
   @@index([sessionId])
 }
+
+/** Événement analytique pour tracking (§38). */
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  eventName String
+  userId    String?
+  duoId     String?
+  sessionId String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([eventName])
+  @@index([userId])
+  @@index([duoId])
+  @@index([sessionId])
+  @@index([createdAt])
+}

@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { guestSchema, normalizeCode } from "@/lib/validation";
 import { canAddMember, duoForCode } from "@/lib/duo";
+import { trackEvent } from "@/lib/analytics";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -75,6 +76,11 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) (session.user as any).id = token.uid;
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      await trackEvent("user_logged_in", { userId: user.id });
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

@@ -8,12 +8,25 @@ import { levelForRound } from "@/lib/interactions";
 import { canDraw } from "@/lib/session-state";
 import { expiryDate } from "@/lib/timer";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/client";
+import { rateLimit, rateLimitConfigs, identifiers } from "@/lib/rate-limit";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   const userId = (session.user as any).id as string;
+
+  // Rate limiting modéré pour les actions de jeu (60 req/min par user)
+  const rl = rateLimit(
+    identifiers.userId({ userId } as any),
+    rateLimitConfigs.gameAction
+  );
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Trop d'actions. Attendez un peu." },
+      { status: 429, headers: { "Retry-After": Math.ceil((rl.resetTime - Date.now()) / 1000).toString() } }
+    );
+  }
 
   const gameSession = await db.gameSession.findUnique({
     where: { id },
