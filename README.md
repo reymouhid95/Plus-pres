@@ -124,4 +124,8 @@ par le workflow.
    masqué en jeu, bilan « Vous avez découvert », sessions de 6 cartes (2 par
    palier, fin auto), rematch même duo/même code. Migration **additive**
    `20260926140000_reactions_discussions` à appliquer sur Neon
-7. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
+7. **Devine ma réponse (Phase D)** — fait : chaque manche = prédire puis répondre
+   (verrouillage serveur), reveal « Bien deviné / Raté », 2ᵉ métrique Connaissance
+   mutuelle, bilan complété (Bien deviné, Surprises). Migration **additive**
+   `20260926160000_predictions` à appliquer sur Neon
+8. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
