@@ -7,7 +7,9 @@ export default function Logo({ href = "/", compact = false }: { href?: string; c
         PP
       </span>
       {!compact && (
-        <span className="font-display text-lg font-semibold tracking-tight text-fg">Plus Près</span>
+        <span className="hidden font-display text-lg font-semibold tracking-tight whitespace-nowrap text-fg sm:inline">
+          Plus Près
+        </span>
       )}
     </Link>
   );

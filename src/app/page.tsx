@@ -32,14 +32,16 @@ const STATS = [
 export default function Home() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-5">
-      <header className="flex items-center justify-between py-5 animate-fade-in">
+      <header className="flex items-center justify-between gap-3 py-5 animate-fade-in">
         <Logo />
         <nav className="flex items-center gap-2">
           <Link href="/login" className="btn btn-ghost btn-sm">
-            Se connecter
+            <span className="hidden sm:inline">Se connecter</span>
+            <span className="sm:hidden">Connexion</span>
           </Link>
           <Link href="/register" className="btn btn-primary btn-sm">
-            Créer un compte
+            <span className="hidden sm:inline">Créer un compte</span>
+            <span className="sm:hidden">S&apos;inscrire</span>
           </Link>
         </nav>
       </header>

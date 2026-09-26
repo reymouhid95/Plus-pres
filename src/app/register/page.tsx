@@ -103,7 +103,7 @@ export default function RegisterPage() {
                 <PasswordField
                   value={password}
                   onChange={setPassword}
-                  placeholder="6 caractères minimum"
+                  placeholder="Votre mot de passe"
                   minLength={6}
                   autoComplete="new-password"
                 />
@@ -140,6 +140,13 @@ export default function RegisterPage() {
       </section>
 
       <section className="brand-panel relative hidden flex-col justify-between p-10 lg:flex">
+        <div className="relative z-10 inline-flex items-center gap-2.5">
+          <span className="grid size-9 place-items-center rounded-[13px] border border-white/25 bg-white/10 font-display text-[13px] font-semibold text-cream">
+            PP
+          </span>
+          <span className="font-display text-lg font-semibold text-cream">Plus Près</span>
+        </div>
+
         <div className="relative z-10 max-w-md">
           <p className="font-display text-4xl leading-tight font-semibold text-cream">
             Trois paliers.
