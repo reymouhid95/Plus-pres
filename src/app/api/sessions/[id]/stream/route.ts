@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isDuoMember } from "@/lib/duo";
 import { buildGameState } from "@/lib/game-state";
 
 // Vercel coupe les fonctions serverless à `maxDuration` : on referme le flux
@@ -30,9 +31,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   const membership = await db.gameSession.findUnique({
     where: { id },
-    select: { hostId: true, partnerId: true },
+    select: { duoId: true },
   });
-  if (!membership || (membership.hostId !== userId && membership.partnerId !== userId)) {
+  if (!membership || !(await isDuoMember(membership.duoId, userId))) {
     return new Response(null, { status: 404 });
   }
 

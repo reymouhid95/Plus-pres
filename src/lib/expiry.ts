@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { otherMember } from "./duo";
 import { isExpired, resolveRoundOutcome } from "./timer";
 
 /**
@@ -50,15 +51,15 @@ export async function resolveExpiredRounds(sessionId: string): Promise<void> {
 
     const session = await tx.gameSession.findUnique({
       where: { id: sessionId },
-      select: { turnUserId: true, hostId: true, partnerId: true },
+      select: { turnUserId: true, duoId: true },
     });
     if (!session) return;
 
     const nextTurnUserId =
-      session.turnUserId === session.hostId ? session.partnerId : session.hostId;
+      (await otherMember(session.duoId, session.turnUserId ?? "")) ?? session.turnUserId;
     await tx.gameSession.update({
       where: { id: sessionId },
-      data: { turnUserId: nextTurnUserId ?? session.hostId },
+      data: { turnUserId: nextTurnUserId },
     });
   });
 }

@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isDuoMember, otherMember } from "@/lib/duo";
 import { answerSchema } from "@/lib/validation";
+import { canAnswer } from "@/lib/session-state";
 import { resolveExpiredRounds } from "@/lib/expiry";
 import { isExpired } from "@/lib/timer";
 
@@ -17,7 +19,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const gameSession = await db.gameSession.findUnique({ where: { id } });
   if (!gameSession) return NextResponse.json({ error: "Partie introuvable." }, { status: 404 });
-  if (gameSession.hostId !== userId && gameSession.partnerId !== userId) {
+  if (!(await isDuoMember(gameSession.duoId, userId))) {
     return NextResponse.json({ error: "Vous ne participez pas à cette partie." }, { status: 403 });
   }
 
@@ -28,15 +30,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (!round || round.sessionId !== gameSession.id) {
     return NextResponse.json({ error: "Manche introuvable." }, { status: 404 });
   }
-  if (round.status === "revealed") {
-    return NextResponse.json({ error: "Cette manche est déjà révélée." }, { status: 400 });
-  }
   if (isExpired(round.expiresAt, Date.now())) {
     await resolveExpiredRounds(gameSession.id);
     return NextResponse.json({ error: "Temps écoulé pour cette question.", expired: true }, { status: 400 });
   }
-  if (round.answers.some((a) => a.userId === userId)) {
-    return NextResponse.json({ error: "Vous avez déjà répondu à cette manche." }, { status: 400 });
+
+  const guard = canAnswer({
+    roundStatus: round.status,
+    alreadyAnswered: round.answers.some((a) => a.userId === userId),
+  });
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
   await db.answer.create({
@@ -48,12 +52,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (allAnswers.length === 2) {
     const matched = allAnswers[0].choice === allAnswers[1].choice;
     const nextTurnUserId =
-      gameSession.turnUserId === gameSession.hostId ? gameSession.partnerId : gameSession.hostId;
+      (await otherMember(gameSession.duoId, gameSession.turnUserId ?? userId)) ??
+      gameSession.turnUserId;
 
     await db.round.update({ where: { id: round.id }, data: { status: "revealed", matched } });
     await db.gameSession.update({
       where: { id: gameSession.id },
-      data: { turnUserId: nextTurnUserId ?? gameSession.hostId },
+      data: { turnUserId: nextTurnUserId },
     });
 
     return NextResponse.json({ status: "revealed", matched });

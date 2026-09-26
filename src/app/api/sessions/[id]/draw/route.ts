@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isDuoMember } from "@/lib/duo";
 import { pickUnusedQuestion } from "@/lib/questions";
+import { canDraw } from "@/lib/session-state";
 import { expiryDate } from "@/lib/timer";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -13,22 +15,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const gameSession = await db.gameSession.findUnique({
     where: { id },
-    include: { rounds: { orderBy: { createdAt: "desc" }, take: 1 } },
+    include: {
+      duo: { select: { status: true } },
+      rounds: { orderBy: { createdAt: "desc" }, take: 1 },
+    },
   });
   if (!gameSession) return NextResponse.json({ error: "Partie introuvable." }, { status: 404 });
-  if (gameSession.hostId !== userId && gameSession.partnerId !== userId) {
+  if (!(await isDuoMember(gameSession.duoId, userId))) {
     return NextResponse.json({ error: "Vous ne participez pas à cette partie." }, { status: 403 });
-  }
-  if (gameSession.status !== "active") {
-    return NextResponse.json({ error: "La partie n'est pas encore active (en attente du partenaire)." }, { status: 400 });
-  }
-  if (gameSession.turnUserId !== userId) {
-    return NextResponse.json({ error: "Ce n'est pas votre tour de tirer une carte." }, { status: 403 });
   }
 
   const pending = gameSession.rounds[0];
-  if (pending && pending.status === "pending") {
-    return NextResponse.json({ error: "Une carte est déjà en attente de réponses." }, { status: 400 });
+  const guard = canDraw({
+    duoStatus: gameSession.duo.status,
+    sessionStatus: gameSession.status,
+    turnUserId: gameSession.turnUserId,
+    userId,
+    hasPendingRound: Boolean(pending && pending.status === "pending"),
+  });
+  if (!guard.ok) {
+    return NextResponse.json({ error: guard.error }, { status: guard.status });
   }
 
   const [usedRounds, candidates] = await Promise.all([

@@ -1,4 +1,6 @@
 import { db } from "./db";
+import { DUO_ROLES } from "./duo";
+import { clientSessionStatus } from "./session-state";
 import { scoreRounds } from "./compatibility";
 import { byLevelCounts, timeline, topMismatches, type LevelStat, type MismatchStat, type RoundStat, type TimelinePoint } from "./stats";
 
@@ -53,19 +55,36 @@ export type SessionReview = {
 
 const PARTNER_FIELDS = { id: true, displayName: true, avatarEmoji: true } as const;
 
-function isMember(hostId: string, partnerId: string | null, userId: string): boolean {
-  return hostId === userId || partnerId === userId;
+/** Clause : sessions des duos dont l'utilisateur est membre. */
+function memberWhere(userId: string) {
+  return { duo: { members: { some: { userId } } } };
+}
+
+/** L'autre membre du duo (ou null si le partenaire n'a pas encore rejoint). */
+function otherUser(
+  members: { userId: string; user: PartnerRef }[],
+  userId: string,
+): PartnerRef | null {
+  return members.find((member) => member.userId !== userId)?.user ?? null;
 }
 
 /** Dernières parties de l'utilisateur, avec leur taux d'alignement pondéré. */
 export async function listSessionsForUser(userId: string, limit = 50): Promise<SessionSummary[]> {
   const sessions = await db.gameSession.findMany({
-    where: { OR: [{ hostId: userId }, { partnerId: userId }] },
+    where: memberWhere(userId),
     orderBy: { createdAt: "desc" },
     take: limit,
     include: {
-      host: { select: PARTNER_FIELDS },
-      partner: { select: PARTNER_FIELDS },
+      duo: {
+        select: {
+          code: true,
+          status: true,
+          members: {
+            include: { user: { select: PARTNER_FIELDS } },
+            orderBy: { joinedAt: "asc" },
+          },
+        },
+      },
       rounds: { where: { status: "revealed" }, select: { level: true, matched: true } },
     },
   });
@@ -74,10 +93,11 @@ export async function listSessionsForUser(userId: string, limit = 50): Promise<S
     const score = scoreRounds(session.rounds);
     return {
       id: session.id,
-      code: session.code,
-      status: session.status,
+      code: session.duo.code,
+      // Statut côté client (waiting/active/completed) pour les pages existantes.
+      status: clientSessionStatus(session.duo.status, session.status),
       createdAt: session.createdAt.toISOString(),
-      partner: session.hostId === userId ? session.partner : session.host,
+      partner: otherUser(session.duo.members, userId),
       rounds: score.totalRounds,
       matchedRounds: score.matchedRounds,
       percentage: score.percentage,
@@ -87,7 +107,7 @@ export async function listSessionsForUser(userId: string, limit = 50): Promise<S
 
 /** Agrégats globaux de l'utilisateur, en une seule passe sur les manches. */
 export async function getUserStats(userId: string, days = 14): Promise<UserStats> {
-  const where = { OR: [{ hostId: userId }, { partnerId: userId }] };
+  const where = memberWhere(userId);
 
   const [sessions, rounds] = await Promise.all([
     db.gameSession.findMany({ where, select: { status: true } }),
@@ -135,8 +155,16 @@ export async function getSessionReview(sessionId: string, userId: string): Promi
   const session = await db.gameSession.findUnique({
     where: { id: sessionId },
     include: {
-      host: { select: PARTNER_FIELDS },
-      partner: { select: PARTNER_FIELDS },
+      duo: {
+        select: {
+          code: true,
+          status: true,
+          members: {
+            include: { user: { select: PARTNER_FIELDS } },
+            orderBy: { joinedAt: "asc" },
+          },
+        },
+      },
       rounds: {
         where: { status: "revealed" },
         orderBy: { createdAt: "asc" },
@@ -148,7 +176,14 @@ export async function getSessionReview(sessionId: string, userId: string): Promi
     },
   });
 
-  if (!session || !isMember(session.hostId, session.partnerId, userId)) return null;
+  if (!session) return null;
+  const memberIds = session.duo.members.map((member) => member.userId);
+  if (!memberIds.includes(userId)) return null;
+  const hostUser =
+    session.duo.members.find((member) => member.role === DUO_ROLES.HOST)?.user ??
+    session.duo.members[0]?.user ??
+    null;
+  if (!hostUser) return null;
 
   const rounds: ReviewRound[] = session.rounds.map((round) => ({
     id: round.id,
@@ -165,11 +200,11 @@ export async function getSessionReview(sessionId: string, userId: string): Promi
 
   return {
     id: session.id,
-    code: session.code,
-    status: session.status,
+    code: session.duo.code,
+    status: clientSessionStatus(session.duo.status, session.status),
     createdAt: session.createdAt.toISOString(),
-    host: session.host,
-    partner: session.hostId === userId ? session.partner : session.host,
+    host: hostUser,
+    partner: otherUser(session.duo.members, userId),
     rounds,
     percentage: score.percentage,
     totalRounds: score.totalRounds,

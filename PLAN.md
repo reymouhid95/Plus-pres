@@ -1,0 +1,101 @@
+# Plus Près — Suivi d'implémentation du cahier des charges
+
+Référence : cahier des charges v1.0 (`§1`–`§45`). Chaque étape est cochée
+(`[x]`) uniquement après validation complète : `typecheck` + tests
+unitaires + `build` + e2e verts.
+
+Légende : `[x]` terminé · `[ ]` à faire · `[~]` partiel.
+
+---
+
+## Version livrée — Fondations + moteur de jeu (Phases 1, 2, 3)
+
+Travail déjà validé avant la Phase A.
+
+- [x] Stack Next.js 16 + TypeScript + Prisma + Neon PostgreSQL (§30)
+- [x] Auth email/mot de passe, routes protégées, validation Zod (§36 partiel)
+- [x] Landing, register/login, dashboard, profil (§7, §8, §29 partiel)
+- [x] Création de session + code, rejoindre par code saisi (§9 partiel, §10 partiel)
+- [x] Verrouillage serveur des réponses, confidentialité avant reveal (§5.2, §16, §37)
+- [x] Boucle question → 2 réponses → révélation comparée (§15, §17 partiel)
+- [x] Minuteur 60/45/30 s, SSE + fallback polling (§35, au-delà du MVP)
+- [x] Score de compatibilité + statistiques + carte PNG + historique (§23 partiel, §28 partiel)
+- [x] CI : quality (typecheck/Vitest/build) + e2e Playwright (§40 sécurité minimale)
+- [x] 36 questions « Se découvrir », choix unique, 3 niveaux
+
+**Écarts connus (ne pas régresser)** : pas de lien `/join/[CODE]` (§9) ·
+compte obligatoire avant de jouer (§5.1, §29) · score affiché pendant la
+partie (§43.2) · session sans fin 3×12 au lieu de 5–7 cartes (§13) ·
+pas de modèle duo (§32).
+
+---
+
+## Phase A — Cadrage : modèle Duo + machine d'état (TERMINÉE)
+
+Objectif : rendre le modèle conforme §32/§33 **sans changer l'UX**.
+Contrat client inchangé (`{ id }` au join, `GameState` identique).
+
+- [x] Schéma : `Duo`, `DuoMember`, `User.email/passwordHash` nullables + `isGuest`, `GameSession.duoId` (le `code` passe sur `Duo`) (§32, §29)
+- [x] Migration SQL `20260926120000_duo_model` : création + backfill 1 Duo/session + retrait `hostId/partnerId/code`, appliquée sur base de test (§32)
+- [x] `src/lib/duo.ts` : `isDuoMember`, `getDuoMembers`, `otherMember`, `createDuoWithSession`, `duoForCode`, garde `canAddMember` + tests (§32)
+- [x] `src/lib/session-state.ts` : machine d'état §33 (Duo `pending|ready`, session `playing|completed`, round `pending|revealed|reaction|discussion`) + gardes `canDraw/canAnswer/advanceSession/clientSessionStatus` + tests (§33)
+- [x] Refactor des accès : `game-state.ts`, `expiry.ts`, `history.ts`, routes `sessions`, `join`, `draw`, `answer`, `level`, `stream`, `review`, `history`, `stats`, pages `game/[id]`, `dashboard` (27 références `hostId/partnerId` → 0) (§37)
+- [x] `buildGameState` : `code` lu sur le duo, `status` dérivé pour le client (`pending→waiting`) — `GameClient.tsx` inchangé
+- [x] Validation : `typecheck` + 66 tests + `build` + 7 e2e verts + vérif SQL du backfill (2 duos `ready`, 4 membres, 0 orpheline)
+- [x] README : roadmap mise à jour
+
+⚠️ Migration `20260926120000_duo_model` appliquée sur Neon le 2026-09-26 (avec `timer_round` qui était en attente).
+
+---
+
+## Phase B — Duo & accès (§5.1, §9, §10, §11, §29, §40)
+
+- [ ] Page `/join/[CODE]` : pseudo → rejoindre → lobby (sans compte)
+- [ ] Auth progressive : provider invité next-auth, `POST /api/auth/upgrade` (email+mot de passe sur le même `user.id`, historique conservé)
+- [ ] Lobby §11 : les deux joueurs, statut, « X vient de rejoindre » via SSE, bouton Commencer
+- [ ] Positionnement landing §7.1 : CTA « Commencer une expérience à deux », plus de « test de compatibilité »
+- [ ] e2e : parcours invité complet (lien → pseudo → jeu → conversion)
+
+## Phase C — Boucle cœur (§17, §19, §20, §21, §22, §43)
+
+- [ ] Reveal §17 : « ❤️ Vous êtes alignés » / « ✨ Vous avez choisi différemment » (plus de rouge-échec, §43.3)
+- [ ] Réactions §19 : ❤️ 😂 😮 👀 🔥 🤔 (modèle `Reaction`, SSE)
+- [ ] Conversation §20 : `[Pourquoi ce choix ?]` `[Défendre mon choix]` `[Trouver un compromis]` `[Continuer]` (modèle `Discussion`)
+- [ ] Motivations §21 (options de justification)
+- [ ] **Masquer le score pendant la partie** (§43.2)
+- [ ] Résultats §22 : points communs / différences / prédictions / conversations / surprises
+- [ ] Session 5–7 cartes §13 (+ rematch sur le même duo, §44)
+
+## Phase D — Devine ma réponse (§12.2, §18, §42)
+
+- [ ] Prédiction en 2 étapes (modèle `Prediction`), indicateur **Connaissance mutuelle** séparé de la compatibilité
+- [ ] e2e du mode prédiction
+
+## Phase E — Contenu & modes (§12, §14, §23)
+
+- [ ] Types de questions : choix multiple, échelle, classement, ouverte, prédiction (moteur §14)
+- [ ] Modes : Se découvrir, Devine ma réponse, Rigoler, Connexion (§12)
+- [ ] Remplir `Question.category` → dimensions §23 (Humour, Voyage, Mode de vie, Projets, Valeurs, Connaissance) + disclaimer non-scientifique
+- [ ] Admin contenu §40 SHOULD : `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
+
+## Phase F — Moments & Histoire (§24, §25, §26, §27, §28)
+
+- [ ] Découverte du jour §24 (synthèse factuelle de fin de session)
+- [ ] Moments §25 : titre, texte, question d'origine, réponses, photo facultative, date
+- [ ] Notre histoire §26 : timeline privée multi-sessions du duo
+- [ ] Challenges §27 : créer, terminer
+- [ ] Historique complet §28 : sessions, résultats, moments, challenges, stats
+
+## Phase G — Beta & acceptation MVP (§36, §38, §39, §40, §44)
+
+- [ ] Sécurité : rate limiting, sanitation des contenus, audit des accès (§36)
+- [ ] Analytics §38 : activation, engagement, interaction, rétention J+1/J+7/J+30, viral
+- [ ] Critères d'acceptation §44 : les 15 points vérifiés un par un (dont déconnexion/reconnexion sans perte)
+- [ ] Tests utilisateurs, performances, correction (§41 Phase 9)
+
+---
+
+## Hors MVP — rappelé par §40 WON'T HAVE
+
+Réseau social public · marketplace · thérapie / diagnostic · IA qui juge ·
+microservices · NestJS · Redis. Ne pas implémenter.

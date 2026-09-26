@@ -9,31 +9,51 @@ datasource db {
 
 model User {
   id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
+  email        String?  @unique // null pour un joueur invité (auth progressive)
+  passwordHash String? // null pour un joueur invité
+  isGuest      Boolean  @default(false)
   displayName  String
   avatarEmoji  String   @default("🙂")
   bio          String?
   birthdate    DateTime?
   createdAt    DateTime @default(now())
 
-  hostedSessions  GameSession[] @relation("host")
-  joinedSessions  GameSession[] @relation("partner")
-  answers         Answer[]
+  duoMemberships DuoMember[]
+  answers        Answer[]
+}
+
+model Duo {
+  id        String   @id @default(cuid())
+  code      String   @unique // lien d'invitation /join/[CODE]
+  status    String   @default("pending") // pending | ready
+  createdAt DateTime @default(now())
+
+  members  DuoMember[]
+  sessions GameSession[]
+}
+
+model DuoMember {
+  id       String   @id @default(cuid())
+  duoId    String
+  duo      Duo      @relation(fields: [duoId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     String   @default("member") // host | partner
+  joinedAt DateTime @default(now())
+
+  @@unique([duoId, userId])
+  @@index([userId])
 }
 
 model GameSession {
   id        String   @id @default(cuid())
-  code      String   @unique
-  status    String   @default("waiting") // waiting | active | completed
+  status    String   @default("playing") // playing | completed
   currentLevel Int   @default(1)
   turnUserId   String? // qui doit tirer la prochaine carte
   createdAt DateTime @default(now())
 
-  hostId    String
-  host      User     @relation("host", fields: [hostId], references: [id])
-  partnerId String?
-  partner   User?    @relation("partner", fields: [partnerId], references: [id])
+  duoId    String
+  duo      Duo    @relation(fields: [duoId], references: [id], onDelete: Cascade)
 
   rounds    Round[]
 }

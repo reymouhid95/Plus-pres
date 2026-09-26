@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isDuoMember } from "@/lib/duo";
 import GameClient from "./GameClient";
 
 export default async function GamePage({ params }: { params: Promise<{ id: string }> }) {
@@ -9,8 +10,8 @@ export default async function GamePage({ params }: { params: Promise<{ id: strin
   const session = await getServerSession(authOptions);
   const userId = (session!.user as any).id as string;
 
-  const gameSession = await db.gameSession.findUnique({ where: { id } });
-  if (!gameSession || (gameSession.hostId !== userId && gameSession.partnerId !== userId)) {
+  const gameSession = await db.gameSession.findUnique({ where: { id }, select: { duoId: true } });
+  if (!gameSession || !(await isDuoMember(gameSession.duoId, userId))) {
     redirect("/dashboard");
   }
 

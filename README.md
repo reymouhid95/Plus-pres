@@ -96,7 +96,7 @@ puis le job `e2e` (service Postgres 16, migrations, Playwright, rapport en
 artefact en cas d'échec). Aucun secret requis : la base de test est provisionnée
 par le workflow.
 
-## Prochaines étapes (v2)
+## Prochaines étapes (v2 — voir PLAN.md pour le suivi détaillé)
 
 1. **Tests + CI** — fait (Vitest, Playwright, GitHub Actions)
 2. **Temps réel + minuteur** — fait : flux SSE (`/api/sessions/[id]/stream`,
@@ -107,5 +107,12 @@ par le workflow.
    répartition par niveau, points de friction), `/game/[id]/review`, carte de
    résultat exportable en PNG, bloc « Votre évolution » sur le dashboard,
    agrégats SQL via `src/lib/history.ts` + logique pure dans `src/lib/stats.ts`
-4. **Lien d'invitation + notifications in-app** — `/join/[CODE]`, QR code, modèle `Notification`
-5. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
+4. **Cadrage Duo + machine d'état (Phase A)** — fait : modèles `Duo`/`DuoMember`
+   (le code d'invitation vit sur le duo), `User` invité (`email`/`passwordHash`
+   nullables, `isGuest`), gardes centralisées (`src/lib/duo.ts`,
+   `src/lib/session-state.ts`), contrat client inchangé.
+   ⚠️ Migration `20260926120000_duo_model` **destructive** (`hostId`/`partnerId`/
+   `code` retirés) : à appliquer sur Neon via `prisma migrate deploy`
+5. **Lien d'invitation + auth progressive (Phase B)** — `/join/[CODE]`, pseudo
+   invité, conversion de compte, lobby §11, repositionnement landing §7.1
+6. **Contenu éditable** — `Question.active`, `User.role`, import JSON/CSV, 36 → 72 questions
