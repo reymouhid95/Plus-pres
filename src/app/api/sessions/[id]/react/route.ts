@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { isDuoMember } from "@/lib/duo";
 import { canInteract } from "@/lib/session-state";
 import { reactSchema } from "@/lib/validation";
+import { rateLimit, rateLimitConfigs, identifiers } from "@/lib/rate-limit";
 
 /** Réaction rapide après une révélation (§19). */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -12,6 +13,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   const userId = (session.user as any).id as string;
+
+  // Rate limiting modéré pour les actions de jeu (60 req/min par user)
+  const rl = rateLimit(
+    identifiers.userId({ userId } as any),
+    rateLimitConfigs.gameAction
+  );
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Trop d'actions. Attendez un peu." },
+      { status: 429, headers: { "Retry-After": Math.ceil((rl.resetTime - Date.now()) / 1000).toString() } }
+    );
+  }
 
   const parsed = reactSchema.safeParse(await req.json());
   if (!parsed.success) return NextResponse.json({ error: "Réaction invalide." }, { status: 400 });

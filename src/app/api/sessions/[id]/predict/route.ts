@@ -7,6 +7,7 @@ import { canPredict } from "@/lib/session-state";
 import { predictSchema } from "@/lib/validation";
 import { resolveExpiredRounds } from "@/lib/expiry";
 import { isExpired } from "@/lib/timer";
+import { rateLimit, rateLimitConfigs, identifiers } from "@/lib/rate-limit";
 
 /**
  * Prédiction de la réponse de l'autre, avant de répondre (§18).
@@ -17,6 +18,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
   const userId = (session.user as any).id as string;
+
+  // Rate limiting modéré pour les actions de jeu (60 req/min par user)
+  const rl = rateLimit(
+    identifiers.userId({ userId } as any),
+    rateLimitConfigs.gameAction
+  );
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Trop d'actions. Attendez un peu." },
+      { status: 429, headers: { "Retry-After": Math.ceil((rl.resetTime - Date.now()) / 1000).toString() } }
+    );
+  }
 
   const parsed = predictSchema.safeParse(await req.json());
   if (!parsed.success) {

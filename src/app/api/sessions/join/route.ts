@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { canAddMember, duoForCode, joinDuo } from "@/lib/duo";
 import { joinSchema, normalizeCode } from "@/lib/validation";
+import { trackEvent } from "@/lib/analytics";
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
@@ -24,6 +25,8 @@ export async function POST(req: Request) {
   if (!gameSession) {
     return NextResponse.json({ error: "Aucune partie active dans ce duo." }, { status: 404 });
   }
+
+  await trackEvent("session_joined", { userId, duoId: duo.id, sessionId: gameSession.id });
 
   return NextResponse.json({ id: gameSession.id });
 }

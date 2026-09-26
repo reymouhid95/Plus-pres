@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { questionSchema } from "@/lib/validation";
+import { sanitizeText, sanitizeForDisplay } from "@/lib/sanitize";
 
 async function checkAdmin(userId: string) {
   const user = await db.user.findUnique({ where: { id: userId }, select: { role: true } });
@@ -46,7 +47,15 @@ export async function POST(req: Request) {
   const results = { created: 0, updated: 0, errors: [] as string[] };
 
   for (const [index, item] of parsed.entries()) {
-    const validated = questionSchema.safeParse(item);
+    // Sanitize text fields before validation
+    const sanitizedItem = {
+      ...item,
+      text: sanitizeText((item as any).text ?? "").slice(0, 300),
+      options: ((item as any).options ?? []).map((opt: string) => sanitizeText(opt).slice(0, 100)),
+      category: (item as any).category ? sanitizeText((item as any).category).slice(0, 50) : undefined,
+    };
+
+    const validated = questionSchema.safeParse(sanitizedItem);
     if (!validated.success) {
       results.errors.push(`Ligne ${index + 1}: ${validated.error.issues.map((i) => i.message).join(", ")}`);
       continue;
