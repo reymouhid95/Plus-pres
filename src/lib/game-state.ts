@@ -1,6 +1,8 @@
 import { db } from "./db";
 import { computeCompatibility } from "./compatibility";
 import { resolveExpiredRounds } from "./expiry";
+import { clientSessionStatus } from "./session-state";
+import { DUO_ROLES, isDuoMember } from "./duo";
 
 export type GameState = {
   id: string;
@@ -40,20 +42,28 @@ export type GameState = {
  * manches expirées pour que le SSE et le polling de secours convergent.
  */
 export async function buildGameState(sessionId: string, userId: string): Promise<GameState | null> {
-  const membership = await db.gameSession.findUnique({
+  const session = await db.gameSession.findUnique({
     where: { id: sessionId },
-    select: { hostId: true, partnerId: true },
+    select: { duoId: true },
   });
-  if (!membership) return null;
-  if (membership.hostId !== userId && membership.partnerId !== userId) return null;
+  if (!session) return null;
+  if (!(await isDuoMember(session.duoId, userId))) return null;
 
   await resolveExpiredRounds(sessionId);
 
   const full = await db.gameSession.findUnique({
     where: { id: sessionId },
     include: {
-      host: { select: { id: true, displayName: true, avatarEmoji: true } },
-      partner: { select: { id: true, displayName: true, avatarEmoji: true } },
+      duo: {
+        select: {
+          code: true,
+          status: true,
+          members: {
+            include: { user: { select: { id: true, displayName: true, avatarEmoji: true } } },
+            orderBy: { joinedAt: "asc" },
+          },
+        },
+      },
       rounds: {
         orderBy: { createdAt: "desc" },
         take: 1,
@@ -62,6 +72,12 @@ export async function buildGameState(sessionId: string, userId: string): Promise
     },
   });
   if (!full) return null;
+
+  const hostMember =
+    full.duo.members.find((member) => member.role === DUO_ROLES.HOST) ?? full.duo.members[0] ?? null;
+  if (!hostMember) return null;
+  const host = hostMember.user;
+  const partner = full.duo.members.find((member) => member.userId !== userId)?.user ?? null;
 
   const compatibility = await computeCompatibility(sessionId);
   const currentRound = full.rounds[0] ?? null;
@@ -92,12 +108,13 @@ export async function buildGameState(sessionId: string, userId: string): Promise
 
   return {
     id: full.id,
-    code: full.code,
-    status: full.status,
+    code: full.duo.code,
+    // Statut dérivé pour le client existant : waiting = partenaire pas encore là.
+    status: clientSessionStatus(full.duo.status, full.status),
     currentLevel: full.currentLevel,
     turnUserId: full.turnUserId,
-    host: full.host,
-    partner: full.partner,
+    host,
+    partner,
     currentRound: safeCurrentRound,
     compatibility,
     serverNow: Date.now(),

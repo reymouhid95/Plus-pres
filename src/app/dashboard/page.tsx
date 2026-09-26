@@ -4,6 +4,7 @@ import { ArrowRight, ChevronRight, Hourglass, Layers, PartyPopper, Play } from "
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getUserStats } from "@/lib/history";
+import { clientSessionStatus } from "@/lib/session-state";
 import AppHeader from "@/components/AppHeader";
 import DashboardActions from "@/components/DashboardActions";
 import Sparkline from "@/components/Sparkline";
@@ -20,11 +21,19 @@ export default async function DashboardPage() {
 
   const [sessions, evolution] = await Promise.all([
     db.gameSession.findMany({
-      where: { OR: [{ hostId: userId }, { partnerId: userId }] },
+      where: { duo: { members: { some: { userId } } } },
       orderBy: { createdAt: "desc" },
       include: {
-        host: { select: { displayName: true, avatarEmoji: true } },
-        partner: { select: { displayName: true, avatarEmoji: true } },
+        duo: {
+          select: {
+            code: true,
+            status: true,
+            members: {
+              include: { user: { select: { displayName: true, avatarEmoji: true } } },
+              orderBy: { joinedAt: "asc" },
+            },
+          },
+        },
       },
     }),
     getUserStats(userId),
@@ -140,8 +149,10 @@ export default async function DashboardPage() {
             )}
 
             {sessions.map((s, index) => {
-              const other = s.hostId === userId ? s.partner : s.host;
-              const status = STATUS_META[s.status as keyof typeof STATUS_META] ?? STATUS_META.waiting;
+              const other =
+                s.duo.members.find((member) => member.userId !== userId)?.user ?? null;
+              const status =
+                STATUS_META[clientSessionStatus(s.duo.status, s.status)];
               return (
                 <Link
                   key={s.id}
@@ -159,7 +170,7 @@ export default async function DashboardPage() {
                         {other ? other.displayName : "En attente d’un partenaire"}
                       </p>
                       <p className="truncate text-xs text-muted">
-                        Code {s.code} · Niveau {s.currentLevel} / 3
+                        Code {s.duo.code} · Niveau {s.currentLevel} / 3
                       </p>
                     </div>
                   </div>

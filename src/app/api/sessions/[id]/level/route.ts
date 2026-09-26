@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { isDuoMember } from "@/lib/duo";
+import { advanceSession } from "@/lib/session-state";
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,12 +13,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const gameSession = await db.gameSession.findUnique({ where: { id } });
   if (!gameSession) return NextResponse.json({ error: "Partie introuvable." }, { status: 404 });
-  if (gameSession.hostId !== userId && gameSession.partnerId !== userId) {
+  if (!(await isDuoMember(gameSession.duoId, userId))) {
     return NextResponse.json({ error: "Vous ne participez pas à cette partie." }, { status: 403 });
   }
 
-  const nextLevel = Math.min(gameSession.currentLevel + 1, 3);
-  const status = gameSession.currentLevel >= 3 ? "completed" : "active";
+  const { nextLevel, status } = advanceSession(gameSession.currentLevel);
 
   const updated = await db.gameSession.update({
     where: { id },
