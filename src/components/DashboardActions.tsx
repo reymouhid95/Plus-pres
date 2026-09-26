@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowRight, Hash, Plus } from "lucide-react";
+import { toast } from "@/components/ui/Toaster";
 
 export default function DashboardActions() {
   const router = useRouter();
@@ -15,12 +17,17 @@ export default function DashboardActions() {
     const res = await fetch("/api/sessions", { method: "POST" });
     const data = await res.json();
     setLoading(false);
-    if (!res.ok) return setError(data.error ?? "Erreur.");
+    if (!res.ok) {
+      setError(data.error ?? "Erreur.");
+      toast(data.error ?? "Impossible de créer la partie.", "error");
+      return;
+    }
+    toast("Partie créée — invite ton partenaire avec le code.", "success");
     router.push(`/game/${data.id}`);
   }
 
-  async function joinGame(e: React.FormEvent) {
-    e.preventDefault();
+  async function joinGame(event: React.FormEvent) {
+    event.preventDefault();
     setLoading(true);
     setError(null);
     const res = await fetch("/api/sessions/join", {
@@ -30,44 +37,57 @@ export default function DashboardActions() {
     });
     const data = await res.json();
     setLoading(false);
-    if (!res.ok) return setError(data.error ?? "Erreur.");
+    if (!res.ok) {
+      setError(data.error ?? "Erreur.");
+      toast(data.error ?? "Impossible de rejoindre la partie.", "error");
+      return;
+    }
+    toast("Partie rejointe.", "success");
     router.push(`/game/${data.id}`);
   }
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
-      <div className="rounded-xl2 bg-card p-6 shadow-sm">
-        <h2 className="font-display text-lg font-medium text-plum">Nouvelle partie</h2>
-        <p className="mt-1 text-sm text-plum/60">Créez une partie et invitez votre partenaire avec le code généré.</p>
-        <button
-          onClick={createGame}
-          disabled={loading}
-          className="mt-4 w-full rounded-xl bg-rose-deep py-3 font-medium text-cream disabled:opacity-60"
-        >
-          Créer une partie
+      <div className="card card-hover flex flex-col p-6">
+        <span className="grid size-10 place-items-center rounded-2xl gradient-brand-soft">
+          <Plus className="size-5 text-accent" strokeWidth={2} />
+        </span>
+        <h2 className="mt-4 font-display text-lg font-semibold text-fg">Nouvelle partie</h2>
+        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted">
+          Crée une partie et invite ton partenaire avec le code généré.
+        </p>
+        <button onClick={createGame} disabled={loading} className="btn btn-primary btn-block mt-5">
+          {loading ? "Création…" : "Créer une partie"}
+          {!loading && <ArrowRight className="size-4" />}
         </button>
       </div>
 
-      <form onSubmit={joinGame} className="rounded-xl2 bg-card p-6 shadow-sm">
-        <h2 className="font-display text-lg font-medium text-plum">Rejoindre</h2>
-        <p className="mt-1 text-sm text-plum/60">Entrez le code reçu de votre partenaire.</p>
+      <form onSubmit={joinGame} className="card card-hover flex flex-col p-6">
+        <span className="grid size-10 place-items-center rounded-2xl gradient-brand-soft">
+          <Hash className="size-5 text-gold" strokeWidth={2} />
+        </span>
+        <h2 className="mt-4 font-display text-lg font-semibold text-fg">Rejoindre</h2>
+        <p className="mt-1.5 flex-1 text-sm leading-relaxed text-muted">
+          Entre le code reçu de ton partenaire.
+        </p>
         <input
           value={code}
-          onChange={(e) => setCode(e.target.value.toUpperCase())}
-          placeholder="CODE"
+          onChange={(event) => setCode(event.target.value.toUpperCase())}
+          placeholder="ABC123"
           maxLength={10}
-          className="mt-4 w-full rounded-xl border border-plum/15 px-4 py-3 text-center tracking-widest outline-none focus:border-rose"
+          aria-label="Code de la partie"
+          className="input mt-5 text-center font-display text-lg tracking-[0.35em] uppercase"
         />
-        <button
-          type="submit"
-          disabled={loading}
-          className="mt-3 w-full rounded-xl border border-plum/25 py-3 font-medium text-plum disabled:opacity-60"
-        >
-          Rejoindre
+        <button type="submit" disabled={loading || code.trim().length < 4} className="btn btn-secondary btn-block mt-3">
+          {loading ? "Recherche…" : "Rejoindre la partie"}
         </button>
       </form>
 
-      {error && <p className="sm:col-span-2 text-sm text-rose-deep">{error}</p>}
+      {error && (
+        <p className="rounded-2xl border border-accent/35 bg-accent/10 px-4 py-2.5 text-sm text-accent sm:col-span-2 animate-pop">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

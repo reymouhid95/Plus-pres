@@ -2,11 +2,26 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import {
+  ArrowLeft,
+  Check,
+  ChevronRight,
+  ClipboardCopy,
+  Hourglass,
+  PartyPopper,
+  Play,
+  RefreshCw,
+  X,
+} from "lucide-react";
+import { toast } from "@/components/ui/Toaster";
+import { Skeleton } from "@/components/ui/Skeleton";
+import ProgressRing from "@/components/ui/ProgressRing";
+import Logo from "@/components/Logo";
 
-const LEVEL_META: Record<number, { label: string; color: string }> = {
-  1: { label: "Découverte", color: "#C7973E" },
-  2: { label: "Complicité", color: "#C77B87" },
-  3: { label: "Connexion", color: "#7C8B6F" },
+const LEVEL_META: Record<number, { label: string; color: string; hint: string }> = {
+  1: { label: "Découverte", color: "#C7973E", hint: "Des questions simples pour briser la glace." },
+  2: { label: "Complicité", color: "#C77B87", hint: "Un cran de profondeur en plus." },
+  3: { label: "Connexion", color: "#7C8B6F", hint: "Les questions qui comptent vraiment." },
 };
 
 type RoundState = {
@@ -29,7 +44,12 @@ type SessionState = {
   host: { id: string; displayName: string; avatarEmoji: string };
   partner: { id: string; displayName: string; avatarEmoji: string } | null;
   currentRound: RoundState | null;
-  compatibility: { percentage: number; totalRounds: number; matchedRounds: number; byLevel: Record<number, number> };
+  compatibility: {
+    percentage: number;
+    totalRounds: number;
+    matchedRounds: number;
+    byLevel: Record<number, number>;
+  };
 };
 
 export default function GameClient({ sessionId, userId }: { sessionId: string; userId: string }) {
@@ -37,6 +57,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const [error, setError] = useState<string | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [answering, setAnswering] = useState(false);
+  const [copied, setCopied] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchState = useCallback(async () => {
@@ -52,11 +73,22 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     };
   }, [fetchState]);
 
-  if (!state) return <main className="flex min-h-screen items-center justify-center text-plum/50">Chargement...</main>;
+  if (!state) {
+    return (
+      <main className="mx-auto w-full max-w-md flex-1 px-5 py-10">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="mt-8 h-64 w-full" />
+        <Skeleton className="mt-4 h-12 w-full" />
+      </main>
+    );
+  }
 
-  const partnerName = state.host.id === userId ? state.partner : state.host;
+  const partner = state.host.id === userId ? state.partner : state.host;
+  const partnerName = partner?.displayName ?? "votre partenaire";
   const isMyTurn = state.turnUserId === userId;
   const meta = LEVEL_META[state.currentLevel] ?? LEVEL_META[1];
+  const round = state.currentRound;
+  const gameCode = state.code;
 
   async function draw() {
     setDrawing(true);
@@ -64,23 +96,30 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     const res = await fetch(`/api/sessions/${sessionId}/draw`, { method: "POST" });
     const data = await res.json();
     setDrawing(false);
-    if (!res.ok) return setError(data.error);
+    if (!res.ok) {
+      setError(data.error);
+      toast(data.error ?? "Impossible de tirer une carte.", "error");
+      return;
+    }
     fetchState();
   }
 
   async function answer(choice: string) {
-    const roundId = state?.currentRound?.id;
-    if (!roundId) return;
+    if (!round) return;
     setAnswering(true);
     setError(null);
     const res = await fetch(`/api/sessions/${sessionId}/answer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roundId, choice }),
+      body: JSON.stringify({ roundId: round.id, choice }),
     });
     const data = await res.json();
     setAnswering(false);
-    if (!res.ok) return setError(data.error);
+    if (!res.ok) {
+      setError(data.error);
+      toast(data.error ?? "Envoi impossible.", "error");
+      return;
+    }
     fetchState();
   }
 
@@ -89,137 +128,370 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     fetchState();
   }
 
+  async function copyCode() {
+    try {
+      await navigator.clipboard.writeText(gameCode);
+      setCopied(true);
+      toast("Code copié dans le presse-papiers.", "success");
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      toast("Copie impossible — notez le code.", "error");
+    }
+  }
+
+  /* ——————————————————————
+     En attente de partenaire
+     —————————————————————— */
+  if (state.status === "waiting") {
+    return (
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-14">
+        <TopBar code={state.code} copied={copied} onCopy={copyCode} />
+
+        <section className="flex flex-1 flex-col items-center justify-center text-center animate-fade-up">
+          <span className="grid size-16 place-items-center rounded-full gradient-brand-soft">
+            <Hourglass className="size-7 text-accent" strokeWidth={1.8} />
+          </span>
+          <h1 className="mt-6 font-display text-3xl font-semibold text-fg">
+            En attente de {partnerName}
+          </h1>
+          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
+            Partage ce code&nbsp;: la partie démarre dès que l&apos;autre joueur a rejoint.
+          </p>
+
+          <button
+            type="button"
+            onClick={copyCode}
+            className="card mt-8 flex items-center gap-4 px-8 py-5 transition hover:border-accent/45 animate-pop"
+            aria-label="Copier le code de la partie"
+          >
+            <span className="font-display text-4xl tracking-[0.3em] text-accent select-all">
+              {state.code}
+            </span>
+            <span className="text-muted">{copied ? <Check className="size-5 text-sage" /> : <ClipboardCopy className="size-5" />}</span>
+          </button>
+
+          <span className="badge badge-accent mt-5 animate-pulse-ring">
+            <span className="dot" />
+            Ouverture de la partie…
+          </span>
+
+          <p className="mt-10 text-xs text-muted">
+            Cette page se met à jour toute seule&nbsp;: reste sur cet écran.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  /* ——————————————————————
+     Partie terminée
+     —————————————————————— */
+  if (state.status === "completed") {
+    return (
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-14">
+        <TopBar code={state.code} copied={copied} onCopy={copyCode} />
+
+        <section className="mt-8 flex flex-col items-center text-center animate-fade-up">
+          <span className="grid size-14 place-items-center rounded-full gradient-brand-soft">
+            <PartyPopper className="size-6 text-gold" strokeWidth={1.8} />
+          </span>
+          <h1 className="mt-5 font-display text-3xl font-semibold text-fg">Partie terminée</h1>
+          <p className="mt-1.5 text-sm text-muted">avec {partner?.avatarEmoji} {partnerName}</p>
+
+          <div className="card mt-7 flex w-full flex-col items-center gap-5 p-7">
+            <ProgressRing value={state.compatibility.percentage} size={132} stroke={11} />
+            <p className="text-sm text-muted">
+              <span className="font-semibold text-fg">{state.compatibility.matchedRounds}</span>{" "}
+              alignements sur{" "}
+              <span className="font-semibold text-fg">{state.compatibility.totalRounds}</span>{" "}
+              questions
+            </p>
+
+            <div className="w-full space-y-3">
+              {Object.entries(state.compatibility.byLevel).map(([level, pct]) => {
+                const levelMeta = LEVEL_META[Number(level)] ?? LEVEL_META[1];
+                return (
+                  <div key={level} className="text-left">
+                    <div className="flex items-baseline justify-between text-xs">
+                      <span className="font-medium text-fg">{levelMeta.label}</span>
+                      <span className="tabular-nums text-muted">{pct}%</span>
+                    </div>
+                    <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-fg/10">
+                      <div
+                        className="h-full rounded-full transition-[width] duration-1000 ease-out"
+                        style={{ width: `${pct}%`, backgroundColor: levelMeta.color }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mt-6 flex w-full flex-col gap-3">
+            <button type="button" onClick={nextLevel} className="btn btn-primary btn-block">
+              <RefreshCw className="size-4" />
+              Rejouer une manche
+            </button>
+            <Link href="/dashboard" className="btn btn-secondary btn-block">
+              Retour aux parties
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  /* ——————————————————————
+     Partie en cours
+     —————————————————————— */
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col items-center px-6 py-10">
-      <div className="flex w-full items-center justify-between">
-        <Link href="/dashboard" className="text-sm text-plum/50">
-          ← Parties
-        </Link>
-        <span className="text-sm font-medium text-plum/60">
-          Compatibilité : <span style={{ color: meta.color }}>{state.compatibility.percentage}%</span>
-        </span>
-      </div>
+    <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-5 pb-14">
+      <TopBar code={state.code} copied={copied} onCopy={copyCode} />
 
-      {state.status === "waiting" && (
-        <div className="mt-16 flex flex-col items-center text-center">
-          <p className="font-display text-2xl text-plum">En attente de votre partenaire</p>
-          <p className="mt-2 text-sm text-plum/60">Partagez ce code pour qu'iel rejoigne la partie :</p>
-          <div className="mt-5 rounded-2xl bg-card px-8 py-4 font-display text-3xl tracking-[0.3em] text-rose-deep shadow-sm">
-            {state.code}
-          </div>
+      <section className="mt-6 animate-fade-up">
+        <div className="flex items-center gap-2">
+          {[1, 2, 3].map((lvl) => {
+            const levelMeta = LEVEL_META[lvl];
+            const active = lvl === state.currentLevel;
+            const passed = lvl < state.currentLevel;
+            return (
+              <div key={lvl} className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <span
+                  className="h-1.5 w-full rounded-full transition-colors duration-500"
+                  style={{
+                    backgroundColor: active || passed ? levelMeta.color : "var(--color-line)",
+                  }}
+                />
+                <span
+                  className="truncate text-[0.7rem] font-semibold tracking-wide"
+                  style={{ color: active ? levelMeta.color : "var(--color-muted)" }}
+                >
+                  {levelMeta.label}
+                </span>
+              </div>
+            );
+          })}
         </div>
-      )}
 
-      {state.status !== "waiting" && (
-        <>
-          <div className="mt-6 flex items-center gap-2">
-            {[1, 2, 3].map((lvl) => (
-              <span
-                key={lvl}
-                className="rounded-full px-3 py-1 text-xs font-medium"
-                style={{
-                  background: lvl === state.currentLevel ? LEVEL_META[lvl].color : "transparent",
-                  color: lvl === state.currentLevel ? "#FFFDFB" : "#36243066",
-                  border: lvl !== state.currentLevel ? "1px solid #36243022" : "none",
-                }}
-              >
-                {LEVEL_META[lvl].label}
-              </span>
-            ))}
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="flex min-w-0 items-center gap-2 text-sm text-muted">
+            <span className="text-base leading-none">{partner?.avatarEmoji ?? "·"}</span>
+            <span className="truncate">avec {partnerName}</span>
+          </p>
+          <span className="badge shrink-0">
+            Niveau {state.currentLevel} / 3
+          </span>
+        </div>
+
+        <p className="mt-2 text-xs text-muted">{meta.hint}</p>
+      </section>
+
+      <section className="mt-5">
+        {/* Révélation */}
+        {round?.status === "revealed" && (
+          <div
+            className="card p-6 text-center animate-pop"
+            style={{
+              borderColor: round.matched ? "color-mix(in oklab, var(--color-sage) 45%, transparent)" : undefined,
+              backgroundColor: round.matched
+                ? "color-mix(in oklab, var(--color-sage) 10%, var(--color-surface))"
+                : undefined,
+            }}
+          >
+            <p className="text-xs uppercase tracking-[0.16em] text-muted">Question révélée</p>
+            <p className="mt-2 text-sm leading-relaxed text-fg">{round.question.text}</p>
+
+            <p
+              className={`mt-4 font-display text-2xl font-semibold ${round.matched ? "text-sage" : "text-accent"}`}
+            >
+              {round.matched ? (
+                <span className="inline-flex items-center gap-2">
+                  <Check className="size-6" /> Vous êtes alignés
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-2">
+                  <X className="size-6" /> Réponses différentes
+                </span>
+              )}
+            </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 text-left">
+              {round.answers.map((entry) => {
+                const mine = entry.userId === userId;
+                return (
+                  <div key={entry.userId} className="rounded-2xl border border-line bg-canvas/60 px-3.5 py-3">
+                    <p className="text-[0.7rem] uppercase tracking-[0.14em] text-muted">
+                      {mine ? "Vous" : partnerName}
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-fg">{entry.choice}</p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+        )}
 
-          <p className="mt-3 text-sm text-plum/50">avec {partnerName?.avatarEmoji} {partnerName?.displayName}</p>
+        {/* Question en cours */}
+        {round && round.status === "pending" && (
+          <div className="card p-6 animate-pop">
+            <p className="text-xs uppercase tracking-[0.16em] text-muted">
+              Question · niveau {round.level}
+            </p>
+            <p className="mt-2.5 font-display text-xl leading-snug font-semibold text-fg">
+              {round.question.text}
+            </p>
 
-          {state.status === "completed" ? (
-            <div className="mt-14 flex flex-col items-center text-center">
-              <p className="font-display text-2xl text-plum">Partie terminée 🎉</p>
-              <p className="mt-3 text-5xl font-display" style={{ color: meta.color }}>
-                {state.compatibility.percentage}%
-              </p>
-              <p className="mt-2 text-sm text-plum/60">
-                {state.compatibility.matchedRounds} alignements sur {state.compatibility.totalRounds} questions
-              </p>
-              <div className="mt-6 flex flex-col gap-1 text-sm text-plum/60">
-                {Object.entries(state.compatibility.byLevel).map(([lvl, pct]) => (
-                  <span key={lvl}>
-                    {LEVEL_META[Number(lvl)].label} : {pct}%
+            {round.myAnswer ? (
+              <div className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4 text-center">
+                <p className="flex items-center justify-center gap-2 text-sm font-medium text-sage">
+                  <Check className="size-4" />
+                  Réponse enregistrée
+                </p>
+                <p className="mt-1.5 text-sm text-muted">
+                  {round.partnerAnswered
+                    ? "Calcul du résultat…"
+                    : `En attente de ${partnerName}…`}
+                </p>
+                {round.partnerAnswered && (
+                  <span className="badge badge-accent mt-3 animate-pulse-ring">
+                    <span className="dot" />
+                    Révélation imminente
                   </span>
+                )}
+              </div>
+            ) : (
+              <div className="mt-5 flex flex-col gap-2.5">
+                {round.question.options.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => answer(option)}
+                    disabled={answering}
+                    className="btn btn-secondary justify-start text-left disabled:opacity-60"
+                  >
+                    <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
+                      {String.fromCharCode(65 + round.question.options.indexOf(option))}
+                    </span>
+                    {option}
+                  </button>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="mt-8 w-full">
-              {!state.currentRound || state.currentRound.status === "revealed" ? (
-                <div className="flex flex-col items-center">
-                  {state.currentRound?.status === "revealed" && (
-                    <div className="mb-6 w-full rounded-xl2 bg-card p-6 text-center shadow-sm">
-                      <p className="text-sm text-plum/50">{state.currentRound.question.text}</p>
-                      <p className={`mt-3 font-display text-xl ${state.currentRound.matched ? "text-sage" : "text-rose-deep"}`}>
-                        {state.currentRound.matched ? "Vous êtes alignés ✓" : "Réponses différentes"}
-                      </p>
-                      <div className="mt-3 flex justify-center gap-4 text-sm text-plum/70">
-                        {state.currentRound.answers.map((a) => (
-                          <span key={a.userId}>
-                            {a.userId === userId ? "Vous" : partnerName?.displayName} : {a.choice}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {isMyTurn ? (
-                    <button
-                      onClick={draw}
-                      disabled={drawing}
-                      className="w-full rounded-2xl py-4 font-medium text-cream disabled:opacity-60"
-                      style={{ background: meta.color }}
-                    >
-                      {drawing ? "Tirage..." : "Tirer une carte"}
-                    </button>
-                  ) : (
-                    <p className="text-sm text-plum/50">C'est au tour de {partnerName?.displayName} de tirer une carte.</p>
-                  )}
-                  {state.currentLevel < 3 && state.compatibility.totalRounds > 0 && (
-                    <button onClick={nextLevel} className="mt-4 text-sm text-plum/50 underline">
-                      Passer au niveau suivant
-                    </button>
-                  )}
-                  {state.currentLevel === 3 && state.compatibility.totalRounds > 0 && (
-                    <button onClick={nextLevel} className="mt-4 text-sm text-plum/50 underline">
-                      Terminer la partie
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-xl2 bg-card p-6 shadow-sm">
-                  <p className="font-display text-lg text-plum">{state.currentRound.question.text}</p>
-                  {state.currentRound.myAnswer ? (
-                    <p className="mt-4 text-sm text-plum/60">
-                      {state.currentRound.partnerAnswered
-                        ? "Calcul du résultat..."
-                        : `En attente de ${partnerName?.displayName}...`}
-                    </p>
-                  ) : (
-                    <div className="mt-4 flex flex-col gap-2">
-                      {state.currentRound.question.options.map((opt) => (
-                        <button
-                          key={opt}
-                          onClick={() => answer(opt)}
-                          disabled={answering}
-                          className="rounded-xl border border-plum/15 px-4 py-3 text-left text-plum hover:border-rose disabled:opacity-60"
-                        >
-                          {opt}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </div>
+        )}
 
-      {error && <p className="mt-4 text-sm text-rose-deep">{error}</p>}
+        {/* Tirage / attente */}
+        {!round || round.status === "revealed" ? (
+          <div className="card mt-4 flex flex-col items-center px-6 py-8 text-center">
+            {state.currentRound?.status === "revealed" && (
+              <p className="mb-5 text-xs uppercase tracking-[0.16em] text-muted">
+                Prochaine manche
+              </p>
+            )}
+            {isMyTurn ? (
+              <button
+                type="button"
+                onClick={draw}
+                disabled={drawing}
+                className="btn btn-block text-base disabled:opacity-60"
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${meta.color}, color-mix(in oklab, ${meta.color} 70%, var(--color-plum)))`,
+                  color: "#fff",
+                  boxShadow: "var(--shadow-glow)",
+                }}
+              >
+                {drawing ? (
+                  <>
+                    <RefreshCw className="size-4 animate-spin" />
+                    Tirage…
+                  </>
+                ) : (
+                  <>
+                    <Play className="size-4" />
+                    Tirer une carte
+                  </>
+                )}
+              </button>
+            ) : (
+              <div className="flex flex-col items-center gap-3">
+                <span className="grid size-11 place-items-center rounded-full gradient-brand-soft">
+                  <Hourglass className="size-5 text-accent" strokeWidth={1.9} />
+                </span>
+                <p className="text-sm text-muted">
+                  C&apos;est au tour de <span className="font-medium text-fg">{partnerName}</span>{" "}
+                  de tirer une carte.
+                </p>
+                <span className="badge badge-accent animate-pulse-ring">
+                  <span className="dot" />
+                  En attente
+                </span>
+              </div>
+            )}
+
+            {state.compatibility.totalRounds > 0 && (
+              <button
+                type="button"
+                onClick={nextLevel}
+                className="mt-5 inline-flex items-center gap-1.5 text-sm text-muted underline decoration-line underline-offset-4 transition hover:text-fg"
+              >
+                {state.currentLevel === 3 ? "Terminer la partie" : "Passer au niveau suivant"}
+                <ChevronRight className="size-4" />
+              </button>
+            )}
+          </div>
+        ) : null}
+      </section>
+
+      {/* Score en cours */}
+      <section className="card mt-4 flex items-center justify-between px-5 py-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.16em] text-muted">Compatibilité</p>
+          <p className="mt-0.5 text-sm text-muted">
+            {state.compatibility.matchedRounds} / {state.compatibility.totalRounds} alignées
+          </p>
+        </div>
+        <ProgressRing value={state.compatibility.percentage} size={58} stroke={6} color={meta.color} />
+      </section>
+
+      {error && (
+        <p className="mt-4 rounded-2xl border border-accent/35 bg-accent/10 px-4 py-2.5 text-center text-sm text-accent animate-pop">
+          {error}
+        </p>
+      )}
     </main>
+  );
+}
+
+function TopBar({
+  code,
+  copied,
+  onCopy,
+}: {
+  code: string;
+  copied: boolean;
+  onCopy: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-5">
+      <Link href="/dashboard" className="btn btn-ghost btn-sm -ml-2">
+        <ArrowLeft className="size-4" />
+        Parties
+      </Link>
+
+      <div className="flex items-center gap-1.5">
+        <Logo compact href="/dashboard" />
+        <button
+          type="button"
+          onClick={onCopy}
+          className="btn btn-ghost btn-sm"
+          title="Copier le code"
+          aria-label={`Copier le code ${code}`}
+        >
+          <span className="font-display tracking-[0.18em]">{code}</span>
+          {copied ? <Check className="size-4 text-sage" /> : <ClipboardCopy className="size-4" />}
+        </button>
+      </div>
+    </div>
   );
 }

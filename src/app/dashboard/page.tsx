@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
+import { ArrowRight, ChevronRight, Hourglass, Layers, PartyPopper, Play } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import AppHeader from "@/components/AppHeader";
 import DashboardActions from "@/components/DashboardActions";
-import SignOutButton from "@/components/SignOutButton";
+
+const STATUS_META = {
+  waiting: { label: "En attente", tone: "badge-gold" },
+  active: { label: "En cours", tone: "badge-accent" },
+  completed: { label: "Terminée", tone: "badge-sage" },
+} as const;
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -18,45 +25,114 @@ export default async function DashboardPage() {
     },
   });
 
+  const stats = {
+    total: sessions.length,
+    running: sessions.filter((s) => s.status !== "completed").length,
+    done: sessions.filter((s) => s.status === "completed").length,
+  };
+
   return (
-    <main className="mx-auto max-w-2xl px-6 py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl font-semibold text-plum">Bonjour, {session!.user?.name}</h1>
-        <div className="flex items-center gap-3">
-          <Link href="/profile" className="text-sm font-medium text-rose-deep">
-            Profil
-          </Link>
-          <SignOutButton />
-        </div>
-      </div>
+    <main className="flex min-h-screen flex-col">
+      <AppHeader user={{ name: session!.user?.name, avatar: (session!.user as any).avatarEmoji }} />
 
-      <div className="mt-8">
-        <DashboardActions />
-      </div>
+      <div className="mx-auto w-full max-w-3xl flex-1 px-5 pb-16 sm:px-6">
+        <section className="pt-10 sm:pt-14 animate-fade-up">
+          <span className="badge badge-accent">
+            <Play className="size-3.5" />
+            Tableau de bord
+          </span>
+          <h1 className="mt-4 font-display text-3xl leading-tight font-semibold text-fg sm:text-4xl">
+            Bonjour, {session!.user?.name}
+          </h1>
+          <p className="mt-2 max-w-lg text-sm leading-relaxed text-muted sm:text-base">
+            Une partie, un code, deux joueurs. Chacun répond de son côté&nbsp;— les réponses ne se
+            croisent qu&apos;une fois les deux ont tranché.
+          </p>
 
-      <h2 className="mt-10 font-display text-lg font-medium text-plum">Vos parties</h2>
-      <div className="mt-4 flex flex-col gap-3">
-        {sessions.length === 0 && <p className="text-sm text-plum/50">Aucune partie pour le moment.</p>}
-        {sessions.map((s) => {
-          const other = s.hostId === userId ? s.partner : s.host;
-          return (
-            <Link
-              key={s.id}
-              href={`/game/${s.id}`}
-              className="flex items-center justify-between rounded-xl2 bg-card p-4 shadow-sm"
-            >
-              <div>
-                <p className="font-medium text-plum">
-                  {other ? `${other.avatarEmoji} ${other.displayName}` : "En attente d'un partenaire"}
+          <dl className="mt-7 grid grid-cols-3 gap-3 sm:max-w-md">
+            {[
+              { value: stats.total, label: "parties", icon: Layers },
+              { value: stats.running, label: "en cours", icon: Hourglass },
+              { value: stats.done, label: "terminées", icon: PartyPopper },
+            ].map((stat) => (
+              <div key={stat.label} className="card p-3.5 text-center sm:p-4">
+                <dd className="font-display text-2xl font-semibold text-fg">{stat.value}</dd>
+                <dd className="mt-0.5 text-[0.7rem] uppercase tracking-[0.16em] text-muted">
+                  {stat.label}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+
+        <section className="mt-8 animate-fade-up stagger-1">
+          <DashboardActions />
+        </section>
+
+        <section className="mt-12 animate-fade-up stagger-2">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-display text-lg font-semibold text-fg">Vos parties</h2>
+            <span className="text-xs uppercase tracking-[0.16em] text-muted">
+              {stats.total} au total
+            </span>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3">
+            {sessions.length === 0 && (
+              <div className="card flex flex-col items-center px-6 py-12 text-center">
+                <span className="grid size-14 place-items-center rounded-full gradient-brand-soft">
+                  <PartyPopper className="size-6 text-accent" strokeWidth={1.8} />
+                </span>
+                <p className="mt-4 font-display text-lg font-semibold text-fg">
+                  Aucune partie pour le moment
                 </p>
-                <p className="text-xs text-plum/50">
-                  Code {s.code} · Niveau {s.currentLevel} · {s.status === "completed" ? "Terminée" : s.status === "waiting" ? "En attente" : "En cours"}
+                <p className="mt-1.5 max-w-xs text-sm leading-relaxed text-muted">
+                  Crée ta première partie ci-dessus, ou rejoins celle de ton partenaire avec son
+                  code.
                 </p>
               </div>
-              <span className="text-rose-deep">→</span>
-            </Link>
-          );
-        })}
+            )}
+
+            {sessions.map((s, index) => {
+              const other = s.hostId === userId ? s.partner : s.host;
+              const status = STATUS_META[s.status as keyof typeof STATUS_META] ?? STATUS_META.waiting;
+              return (
+                <Link
+                  key={s.id}
+                  href={`/game/${s.id}`}
+                  className={`card card-hover group flex items-center justify-between gap-4 p-4 animate-fade-up sm:p-5 ${
+                    index < 4 ? `stagger-${index + 1}` : ""
+                  }`}
+                >
+                  <div className="flex min-w-0 items-center gap-3.5">
+                    <span className="gradient-brand-soft grid size-11 shrink-0 place-items-center rounded-full text-xl leading-none">
+                      {other?.avatarEmoji ?? "⏳"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-medium text-fg">
+                        {other ? other.displayName : "En attente d’un partenaire"}
+                      </p>
+                      <p className="truncate text-xs text-muted">
+                        Code {s.code} · Niveau {s.currentLevel} / 3
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2.5">
+                    <span className={`badge ${status.tone}`}>{status.label}</span>
+                    <ChevronRight className="size-4 text-muted transition-transform duration-300 group-hover:translate-x-1" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="rule mt-12" />
+        <p className="mt-5 flex items-center gap-1.5 text-xs text-muted">
+          <ArrowRight className="size-3.5" />
+          Astuce&nbsp;: le score n&apos;augmente vraiment qu&apos;au troisième niveau.
+        </p>
       </div>
     </main>
   );
