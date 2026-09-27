@@ -8,6 +8,7 @@ import { canAnswer } from "@/lib/session-state";
 import { resolveExpiredRounds } from "@/lib/expiry";
 import { isExpired } from "@/lib/timer";
 import { rateLimit, rateLimitConfigs, identifiers } from "@/lib/rate-limit";
+import { trackEvent } from "@/lib/analytics";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -62,6 +63,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     data: { roundId: round.id, userId, choice: parsed.data.choice },
   });
 
+  await trackEvent("answer_submitted", { userId, duoId: gameSession.duoId, sessionId: id, roundId: round.id });
+
   const allAnswers = await db.answer.findMany({ where: { roundId: round.id } });
 
   if (allAnswers.length === 2) {
@@ -76,6 +79,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       data: { turnUserId: nextTurnUserId },
     });
 
+    await trackEvent("round_revealed", { userId, duoId: gameSession.duoId, sessionId: id, roundId: round.id, matched });
+
     // Dernière carte de la session : place au bilan (§13, §22).
     const revealedCount = await db.round.count({
       where: { sessionId: gameSession.id, status: "revealed" },
@@ -85,6 +90,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         where: { id: gameSession.id },
         data: { status: "completed" },
       });
+      await trackEvent("session_completed", { userId, duoId: gameSession.duoId, sessionId: id });
     }
 
     return NextResponse.json({ status: "revealed", matched });
