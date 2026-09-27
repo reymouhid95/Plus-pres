@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X, Heart, Camera, Image } from "lucide-react";
-import { toast } from "@/components/ui/ToastSystem";
+import { toast } from "@/components/ui/Toaster";
 
 type SaveMomentDialogProps = {
   isOpen: boolean;

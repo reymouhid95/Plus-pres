@@ -662,16 +662,6 @@ export function generateCSSVariables(): string {
     lines.push(`  --breakpoint-${key}: ${value};`);
   });
 
-  // Radius
-  Object.entries(radius).forEach(([key, value]) => {
-    lines.push(`  --radius-${key}: ${value};`);
-  });
-
-  // Z-index
-  Object.entries(zIndex).forEach(([key, value]) => {
-    lines.push(`  --z-${key}: ${value};`);
-  });
-
   lines.push("}");
 
   // Dark mode support

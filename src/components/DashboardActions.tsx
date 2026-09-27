@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Hash, Plus } from "lucide-react";
-import { toast } from "@/components/ui/ToastSystem";
+import { toast } from "@/components/ui/Toaster";
 
 export default function DashboardActions() {
   const router = useRouter();

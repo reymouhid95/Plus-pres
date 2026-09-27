@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sparkles, BookOpen, Download, Heart, Camera } from "lucide-react";
-import { toast } from "@/components/ui/ToastSystem";
+import { toast } from "@/components/ui/Toaster";
 
 type DiscoveryScreenProps = {
   sessionId: string;

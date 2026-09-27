@@ -28,6 +28,15 @@
 
   /* — rayons — */
   --radius-xl2: 22px;
+  --radius-pill: 9999px;
+
+  /* — motion (Sprint UX : 150 / 250 / 400 ms) — */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-emphasis: 400ms;
+
+  /* — breakpoints mobile-first — */
+  --breakpoint-xs: 414px;
 
   /* — ombres — */
   --shadow-soft: 0 1px 2px rgb(54 36 48 / 0.04), 0 12px 32px -20px rgb(54 36 48 / 0.4);
@@ -579,6 +588,46 @@
   border-color: color-mix(in oklab, var(--color-accent) 70%, transparent);
   background-color: color-mix(in oklab, var(--color-accent) 16%, transparent);
   box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-accent) 20%, transparent);
+}
+
+/* ——————————————————————————————
+   Typographie (échelle V1)
+   —————————————————————————————— */
+.t-display {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.t-heading {
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.t-subheading {
+  font-size: clamp(1.05rem, 2vw, 1.25rem);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.t-body {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.t-small {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.t-caption {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--color-muted);
 }
 }
 

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Karla, Geist } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
-import { Toaster } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/Toaster";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});

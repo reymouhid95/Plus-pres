@@ -37,6 +37,9 @@ export default defineConfig({
       DIRECT_URL: process.env.DIRECT_URL ?? "",
       NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET ?? "",
       NEXTAUTH_URL: baseURL,
+      // Les e2e créent bien plus de comptes que la limite prod (5/15 min)
+      RATE_LIMIT_AUTH_MAX: "500",
+      RATE_LIMIT_GAME_MAX: "500",
     },
   },
 });

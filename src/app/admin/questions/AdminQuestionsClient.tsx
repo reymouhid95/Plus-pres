@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Plus, Edit, Trash2, FileUp, Download, Save, X, ChevronDown, ChevronUp } from "lucide-react";
-import { toast } from "@/components/ui/ToastSystem";
+import { toast } from "@/components/ui/Toaster";
 
 type Question = {
   id: string;

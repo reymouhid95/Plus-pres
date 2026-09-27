@@ -151,25 +151,25 @@ Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 Objectif : Transformer le MVP fonctionnel en produit moderne, intuitif, élégant et agréable — selon le cahier des charges V1.
 
 ### Sprint UX 1 — Design System (FONDATIONS)
-- [ ] Tokens centralisés : `colors`, `spacing`, `radius`, `shadows`, `typography`, `motion`, `breakpoints` dans `src/lib/design-tokens.ts`
-- [ ] Composants de base : `Button`, `Card`, `Badge`, `Modal`, `Dialog`, `Sheet`, `Toast`, `Progress`, `Avatar`, `Input`, `Select`
-- [ ] Composants métier : `QuestionCard`, `AnswerOption`, `RevealCard`, `ReactionPicker`, `StatCard`, `MomentCard`, `ChallengeCard`, `EmptyState`, `Skeleton`
-- [ ] Typographie : échelle `Display`, `Heading`, `Subheading`, `Body`, `Small`, `Caption`
-- [ ] Couleurs : palette réduite (primary, secondary, surface, background, text, textMuted, success, warning, error)
-- [ ] Rayons : `sm`, `md`, `lg`, `pill`, `full` — cohérents
-- [ ] Ombres : système léger (sm, md, lg) — pas d'accumulation
-- [ ] Motion system : `fast` (150ms), `normal` (250ms), `emphasis` (400ms) + `prefers-reduced-motion`
-- [ ] Espacement : échelle 4/8/12/16/24/32/48/64/80
-- [ ] Largeur max contenu : `max-w-3xl` (ou `max-w-4xl` selon pages)
-- [ ] Breakpoints : 360/390/414/768/1024/1280+
+- [x] Tokens centralisés : `colors`, `spacing`, `radius`, `shadows`, `typography`, `motion`, `breakpoints` dans `src/lib/design-tokens.ts`
+- [x] Composants de base : `Button`, `Card`, `Badge`, `Modal`, `Dialog`, `Sheet`, `Toast`, `Progress`, `Avatar`, `Input`, `Select`
+- [x] Composants métier : `QuestionCard`, `AnswerOption`, `RevealCard`, `ReactionPicker`, `StatCard`, `MomentCard`, `ChallengeCard`, `EmptyState`, `Skeleton`
+- [x] Typographie : échelle `Display`, `Heading`, `Subheading`, `Body`, `Small`, `Caption`
+- [x] Couleurs : palette réduite (primary, secondary, surface, background, text, textMuted, success, warning, error)
+- [x] Rayons : `sm`, `md`, `lg`, `pill`, `full` — cohérents
+- [x] Ombres : système léger (sm, md, lg) — pas d'accumulation
+- [x] Motion system : `fast` (150ms), `normal` (250ms), `emphasis` (400ms) + `prefers-reduced-motion`
+- [x] Espacement : échelle 4/8/12/16/24/32/48/64/80
+- [x] Largeur max contenu : `max-w-3xl` (ou `max-w-4xl` selon pages)
+- [x] Breakpoints : 360/390/414/768/1024/1280+
 
 ### Sprint UX 2 — Landing + Navigation
-- [ ] Landing : Hero simplifié (CTA unique "Commencer une expérience à deux", pas de stats "36 questions")
-- [ ] Landing : Sections "Comment ça marche" (4 étapes) + "Modes de jeu" (4 cartes)
-- [ ] Header : Navigation simple (Accueil, Jouer, Notre histoire, Profil)
-- [ ] Footer : Minimal, liens légaux
-- [ ] CTA unique visible : "Commencer une expérience à deux"
-- [ ] Responsive mobile-first
+- [x] Landing : Hero simplifié (CTA unique "Commencer une expérience à deux", pas de stats "36 questions")
+- [x] Landing : Sections "Comment ça marche" (4 étapes) + "Modes de jeu" (4 cartes)
+- [x] Header : Navigation simple (Accueil, Jouer, Notre histoire, Profil)
+- [x] Footer : Minimal, liens légaux
+- [x] CTA unique visible : "Commencer une expérience à deux"
+- [x] Responsive mobile-first
 
 ### Sprint UX 3 — Duo / Lobby
 - [ ] Création : Écran minimaliste "Créer une expérience" → génère code + redirection lobby

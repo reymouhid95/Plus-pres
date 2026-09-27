@@ -106,11 +106,25 @@ export const identifiers = {
 
 /**
  * Configurations prédéfinies
+ * Les maximums sont surchargeables par env (tests e2e) — défauts inchangés en production.
  */
+function envInt(name: string, fallback: number): number {
+  const parsed = Number(process.env[name]);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 export const rateLimitConfigs = {
-  strict: { windowMs: 60_000, maxRequests: 10, keyPrefix: "strict" }, // 10 req/min
-  moderate: { windowMs: 60_000, maxRequests: 30, keyPrefix: "mod" }, // 30 req/min
-  loose: { windowMs: 60_000, maxRequests: 100, keyPrefix: "loose" }, // 100 req/min
-  auth: { windowMs: 15 * 60_000, maxRequests: 5, keyPrefix: "auth" }, // 5 req/15min
-  gameAction: { windowMs: 60_000, maxRequests: 60, keyPrefix: "game" }, // 60 req/min
+  strict: { windowMs: 60_000, maxRequests: envInt("RATE_LIMIT_STRICT_MAX", 10), keyPrefix: "strict" },
+  moderate: { windowMs: 60_000, maxRequests: envInt("RATE_LIMIT_MODERATE_MAX", 30), keyPrefix: "mod" },
+  loose: { windowMs: 60_000, maxRequests: envInt("RATE_LIMIT_LOOSE_MAX", 100), keyPrefix: "loose" },
+  auth: {
+    windowMs: 15 * 60_000,
+    maxRequests: envInt("RATE_LIMIT_AUTH_MAX", 5),
+    keyPrefix: "auth",
+  },
+  gameAction: {
+    windowMs: 60_000,
+    maxRequests: envInt("RATE_LIMIT_GAME_MAX", 60),
+    keyPrefix: "game",
+  },
 };

@@ -21,7 +21,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
-import { toast } from "@/components/ui/ToastSystem";
+import { toast } from "@/components/ui/Toaster";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Logo from "@/components/Logo";
 import { QuestionRenderer } from "@/components/QuestionRenderer";
@@ -649,6 +649,28 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 );
               })}
             </div>
+          </div>
+
+          <div className="mt-6 flex w-full flex-col gap-3">
+            <button
+              type="button"
+              data-testid="rematch"
+              onClick={rematch}
+              disabled={rematching}
+              className="btn btn-primary"
+            >
+              {rematching ? (
+                "Création en cours…"
+              ) : (
+                <>
+                  <RefreshCw className="size-4" />
+                  Rejouer avec {partnerName}
+                </>
+              )}
+            </button>
+            <Link href="/dashboard" className="btn btn-secondary">
+              Retour au tableau de bord
+            </Link>
           </div>
 
           </section>
