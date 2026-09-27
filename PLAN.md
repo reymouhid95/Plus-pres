@@ -139,10 +139,10 @@ Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 - [x] Sécurité : rate limiting (auth 5/15min, game 60/min), sanitization DOMPurify, audit accès middleware
 - [x] Analytics §38 : events tracking complet (activation, engagement, interaction, rétention J+1/J+7/J+30, viral)
 - [x] Critères acceptation §44 : 15 points vérifiés (voir `ACCEPTANCE_CRITERIA.md`)
-- [x] Tests : typecheck + 94 unit + build + 10/11 e2e (1 flaky connu)
+- [x] Tests : typecheck + 108 unit + build + 11/11 e2e
 - [x] `ACCEPTANCE_CRITERIA.md` créé avec checklist complète §44
 
-⚠️ 1 e2e flaky connu : `results.spec.ts` (matched count timing) — non bloquant, tests individuels passent
+✅ e2e : 11/11 — le « flaky » `results.spec.ts` était en réalité la perte du bouton rematch (corrigé)
 
 ---
 
