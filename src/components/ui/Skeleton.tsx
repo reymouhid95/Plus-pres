@@ -1,13 +1,52 @@
-export function Skeleton({ className = "" }: { className?: string }) {
-  return <div aria-hidden="true" className={`skeleton ${className}`} />;
-}
+"use client";
 
-export function SkeletonCard({ className = "" }: { className?: string }) {
+import { cva, type VariantProps } from "class-variance-authority";
+
+const skeletonVariants = cva(
+  "animate-pulse rounded bg-neutral-200",
+  {
+    variants: {
+      variant: {
+        text: "h-4 w-full",
+        circular: "rounded-full",
+        rectangular: "rounded-lg",
+      },
+      size: {
+        sm: "h-4",
+        md: "h-5",
+        lg: "h-6",
+        xl: "h-8",
+      },
+      width: {
+        full: "w-full",
+        half: "w-1/2",
+        quarter: "w-1/4",
+        threeQuarters: "w-3/4",
+      },
+    },
+    defaultVariants: {
+      variant: "text",
+      size: "md",
+      width: "full",
+    },
+  }
+);
+
+export interface SkeletonProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof skeletonVariants> {}
+
+export function Skeleton({
+  className,
+  variant = "text",
+  size = "md",
+  width = "full",
+  ...props
+}: SkeletonProps) {
   return (
-    <div className={`card p-5 ${className}`}>
-      <Skeleton className="h-4 w-1/3" />
-      <Skeleton className="mt-3 h-3 w-2/3" />
-      <Skeleton className="mt-2 h-3 w-1/2" />
-    </div>
+    <div
+      className={skeletonVariants({ variant, size, width, className })}
+      {...props}
+    />
   );
 }

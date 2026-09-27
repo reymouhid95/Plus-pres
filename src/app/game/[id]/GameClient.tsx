@@ -651,6 +651,28 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             </div>
           </div>
 
+          <div className="mt-6 flex w-full flex-col gap-3">
+            <button
+              type="button"
+              data-testid="rematch"
+              onClick={rematch}
+              disabled={rematching}
+              className="btn btn-primary"
+            >
+              {rematching ? (
+                "Création en cours…"
+              ) : (
+                <>
+                  <RefreshCw className="size-4" />
+                  Rejouer avec {partnerName}
+                </>
+              )}
+            </button>
+            <Link href="/dashboard" className="btn btn-secondary">
+              Retour au tableau de bord
+            </Link>
+          </div>
+
           </section>
       </main>
     );

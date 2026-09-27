@@ -1,109 +1,154 @@
 import Link from "next/link";
-import { ArrowRight, HeartHandshake, Layers, Sparkles, Timer } from "lucide-react";
-import Logo from "@/components/Logo";
+import { ArrowRight, Heart, HelpCircle, PartyPopper, Sparkles, UserRound } from "lucide-react";
+import SiteHeader from "@/components/SiteHeader";
+import SiteFooter from "@/components/SiteFooter";
 
-const FEATURES = [
+const STEPS = [
   {
-    icon: Layers,
-    title: "Trois paliers",
-    text: "Découverte, Complicité, Connexion : on avance niveau par niveau, jamais en sautant d'étape.",
-    tone: "text-gold",
+    title: "Créez votre expérience",
+    text: "Un clic suffit : votre code d’invitation est prêt en quelques secondes.",
   },
   {
-    icon: HeartHandshake,
-    title: "Réponses croisées",
-    text: "Chacun répond de son côté. Personne ne voit le choix de l'autre avant la révélation.",
-    tone: "text-accent",
+    title: "Invitez votre partenaire",
+    text: "Partagez le lien ou le code. Un simple pseudo suffit pour jouer, sans compte.",
   },
   {
-    icon: Timer,
-    title: "Révélations",
-    text: "Chaque manche révèle vos choix côte à côte — et lance la discussion.",
-    tone: "text-sage",
+    title: "Répondez chacun de votre côté",
+    text: "Six questions, réponses secrètes : personne ne voit le choix de l’autre.",
+  },
+  {
+    title: "Révélez et échangez",
+    text: "Vos choix apparaissent côte à côte — et la discussion s’enchaîne naturellement.",
   },
 ] as const;
 
-const STATS = [
-  { value: "3", label: "niveaux" },
-  { value: "36", label: "questions" },
-  { value: "2", label: "joueurs" },
+const MODES = [
+  {
+    icon: UserRound,
+    title: "Se découvrir",
+    text: "Des questions douces pour apprendre à vous connaître, du premier café aux petits riens.",
+    tone: "text-accent",
+  },
+  {
+    icon: PartyPopper,
+    title: "Rigoler",
+    text: "Souvenirs, bêtises et confessions légères : pour rire ensemble, vraiment.",
+    tone: "text-gold",
+  },
+  {
+    icon: HelpCircle,
+    title: "Devine ma réponse",
+    text: "Devinez ce que l’autre a répondu : la connaissance mutuelle, manche après manche.",
+    tone: "text-sage",
+  },
+  {
+    icon: Heart,
+    title: "Connexion",
+    text: "Les questions qui creusent : habitudes, valeurs, et ce qui compte vraiment.",
+    tone: "text-rose-deep",
+  },
 ] as const;
 
 export default function Home() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-5">
-      <header className="flex items-center justify-between gap-3 py-5 animate-fade-in">
-        <Logo />
-        <nav className="flex items-center gap-2">
-          <Link href="/login" className="btn btn-ghost btn-sm">
-            <span className="hidden sm:inline">Se connecter</span>
-            <span className="sm:hidden">Connexion</span>
-          </Link>
-          <Link href="/register" className="btn btn-primary btn-sm">
-            <span className="hidden sm:inline">Créer un compte</span>
-            <span className="sm:hidden">S&apos;inscrire</span>
-          </Link>
-        </nav>
-      </header>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
 
-      <section className="flex flex-1 flex-col items-center justify-center py-14 text-center sm:py-20">
-        <span className="badge badge-accent animate-fade-up">
-          <Sparkles className="size-3.5" />
-          Un jeu à deux, par paliers
-        </span>
+      <main className="flex flex-1 flex-col">
+        <section className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center px-5 py-16 text-center sm:py-24">
+          <span className="badge badge-accent animate-fade-up">
+            <Sparkles className="size-3.5" />
+            Un jeu à deux, par paliers
+          </span>
 
-        <h1 className="mt-7 max-w-3xl font-display text-4xl leading-[1.05] font-semibold animate-fade-up stagger-1 sm:text-6xl">
-          Se rapprocher,
-          <br className="sm:hidden" /> <span className="text-gradient">une question à la fois.</span>
-        </h1>
+          <h1 className="t-display mt-7 max-w-3xl animate-fade-up stagger-1">
+            Se rapprocher,
+            <br className="sm:hidden" /> <span className="text-gradient">une question à la fois.</span>
+          </h1>
 
-        <p className="mt-6 max-w-xl text-base leading-relaxed text-muted animate-fade-up stagger-2 sm:text-lg">
-          Vous répondez chacun de votre côté à des questions pensées pour deux. Une
-          fois les deux réponses déposées, l&apos;application les révèle côte à côte —
-          pour comparer, raconter, et découvrir ce que vos choix disent de vous.
-        </p>
+          <p className="t-body mt-6 max-w-xl text-muted animate-fade-up stagger-2">
+            Vous répondez chacun de votre côté à des questions pensées pour deux. Une
+            fois les deux réponses déposées, l&apos;application les révèle côte à côte —
+            pour comparer, raconter, et découvrir ce que vos choix disent de vous.
+          </p>
 
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3 animate-fade-up stagger-3">
-          <Link href="/register" className="btn btn-primary">
-            Commencer une expérience à deux
-            <ArrowRight className="size-4" />
-          </Link>
-          <Link href="/login" className="btn btn-secondary">
-            J&apos;ai déjà un compte
-          </Link>
-        </div>
-        <p className="mt-5 max-w-md text-sm text-muted animate-fade-up stagger-4">
-          Un lien d&apos;invitation&nbsp;? Ouvrez-le : un simple pseudo suffit pour jouer,
-          sans compte.
-        </p>
+          <div className="mt-9 animate-fade-up stagger-3">
+            <Link href="/register" className="btn btn-primary">
+              Commencer une expérience à deux
+              <ArrowRight className="size-4" />
+            </Link>
+          </div>
+          <p className="t-small mt-5 max-w-md text-muted animate-fade-up stagger-4">
+            Déjà un compte ?{" "}
+            <Link href="/login" className="font-semibold text-fg underline underline-offset-4">
+              Se connecter
+            </Link>
+            <br />
+            Un lien d&apos;invitation&nbsp;? Ouvrez-le : un simple pseudo suffit pour jouer.
+          </p>
+        </section>
 
-        <dl className="mt-12 flex items-center gap-8 text-center animate-fade-up stagger-4 sm:gap-14">
-          {STATS.map((stat) => (
-            <div key={stat.label}>
-              <dt className="sr-only">{stat.label}</dt>
-              <dd className="font-display text-3xl font-semibold text-fg">{stat.value}</dd>
-              <dd className="mt-0.5 text-xs uppercase tracking-[0.18em] text-muted">{stat.label}</dd>
+        <section id="etapes" className="border-t border-line/70 bg-surface/60">
+          <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+            <h2 className="t-heading text-center">Comment ça marche</h2>
+            <p className="t-body mx-auto mt-3 max-w-xl text-center text-muted">
+              Quatre étapes, une expérience à deux — de l&apos;invitation à la révélation.
+            </p>
+
+            <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {STEPS.map((step, index) => (
+                <li key={step.title} className="card card-hover p-6 animate-fade-up">
+                  <span className="gradient-brand grid size-9 place-items-center rounded-full font-display text-sm font-semibold text-cream">
+                    {index + 1}
+                  </span>
+                  <h3 className="t-subheading mt-4">{step.title}</h3>
+                  <p className="t-small mt-2 text-muted">{step.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section id="modes" className="border-t border-line/70">
+          <div className="mx-auto w-full max-w-5xl px-5 py-16 sm:py-20">
+            <h2 className="t-heading text-center">Modes de jeu</h2>
+            <p className="t-body mx-auto mt-3 max-w-xl text-center text-muted">
+              Quatre ambiances, une seule règle : on ne triche pas sur les réponses.
+            </p>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2">
+              {MODES.map((mode) => (
+                <article key={mode.title} className="card card-hover flex gap-4 p-6 animate-fade-up">
+                  <span className="grid size-11 shrink-0 place-items-center rounded-2xl gradient-brand-soft">
+                    <mode.icon className={`size-5 ${mode.tone}`} strokeWidth={1.9} />
+                  </span>
+                  <div>
+                    <h3 className="t-subheading">{mode.title}</h3>
+                    <p className="t-small mt-2 text-muted">{mode.text}</p>
+                  </div>
+                </article>
+              ))}
             </div>
-          ))}
-        </dl>
-      </section>
+          </div>
+        </section>
 
-      <section className="grid gap-4 pb-16 sm:grid-cols-3">
-        {FEATURES.map((feature, index) => (
-          <article
-            key={feature.title}
-            className={`card card-hover p-6 animate-fade-up stagger-${index + 2}`}
-          >
-            <span className="grid size-11 place-items-center rounded-2xl gradient-brand-soft">
-              <feature.icon className={`size-5 ${feature.tone}`} strokeWidth={1.9} />
-            </span>
-            <h2 className="mt-4 text-base font-semibold text-fg">{feature.title}</h2>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{feature.text}</p>
-          </article>
-        ))}
-      </section>
+        <section className="border-t border-line/70 bg-surface/60">
+          <div className="mx-auto flex w-full max-w-5xl flex-col items-center px-5 py-16 text-center sm:py-20">
+            <h2 className="t-heading">Prêt à vous rapprocher&nbsp;?</h2>
+            <p className="t-body mt-3 max-w-md text-muted">
+              Créez votre expérience et invitez votre partenaire en moins d’une minute.
+            </p>
+            <div className="mt-7">
+              <Link href="/register" className="btn btn-primary">
+                Commencer une expérience à deux
+                <ArrowRight className="size-4" />
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
 
-      <footer className="rule mb-8" />
-    </main>
+      <SiteFooter />
+    </div>
   );
 }

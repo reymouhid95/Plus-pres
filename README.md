@@ -142,4 +142,5 @@ par le workflow.
    API CRUD, écran découverte du jour (fin session), sauvegarde moments avec photo/texte,
    admin questions (CRUD + import/export). Migrations additives prêtes pour Neon.
    ⚠️ 1 e2e instable (`results.spec.ts` — matched count 3/4).
-11. **Beta & MVP (§36, §38, §39, §40, §44)** — rate limiting, analytics, critères d'acceptation, tests utilisateurs
+11. **Beta & MVP (§36, §38, §39, §40, §44)** — **FAIT** : rate limiting, analytics (§38), critères acceptation §44 (checklist `ACCEPTANCE_CRITERIA.md`), CI complète. ⚠️ 1 e2e instable (`results.spec.ts`) non bloquant.
+12. **Refonte UX/UI V1 (Phase H — PRIORITÉ ABSOLUE)** — Design system, Landing, Dashboard, Lobby, Jeu, Reveal, Résultats, Histoire, Moments, Challenges, Responsive, Accessibilité, Animations, Design system centralisé. Sprint UX 1-9.

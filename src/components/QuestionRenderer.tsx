@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronUp, ChevronDown, GripVertical, Minus, Plus, Check } from "lucide-react";
+import { ChevronUp, ChevronDown, GripVertical, Check } from "lucide-react";
+import { AnswerOption } from "@/components/AnswerOption";
 
 type QuestionRendererProps = {
   question: {
@@ -21,23 +22,17 @@ type QuestionRendererProps = {
 function SingleChoice({ question, myAnswer, disabled, onAnswer, testIdPrefix = "answer" }: QuestionRendererProps) {
   return (
     <div className="mt-5 flex flex-col gap-2.5">
-      {question.options.map((option) => (
-        <button
+      {question.options.map((option, index) => (
+        <AnswerOption
           key={option}
-          type="button"
-          data-testid={`${testIdPrefix}-option`}
-          onClick={() => onAnswer(option)}
+          indicator={String.fromCharCode(65 + index)}
+          selected={myAnswer === option}
           disabled={disabled}
-          className={`btn btn-secondary justify-start text-left disabled:opacity-60 ${
-            myAnswer === option ? "border-accent/60 bg-accent/10" : "border-line bg-canvas/60"
-          }`}
+          onClick={() => onAnswer(option)}
+          testId={`${testIdPrefix}-option`}
         >
-          <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
-            {String.fromCharCode(65 + question.options.indexOf(option))}
-          </span>
           {option}
-          {myAnswer === option && <Check className="size-4 ml-auto text-sage" />}
-        </button>
+        </AnswerOption>
       ))}
     </div>
   );
@@ -59,22 +54,17 @@ function MultipleChoice({ question, myAnswer, disabled, onAnswer, testIdPrefix =
       <p className="text-xs text-muted">
         {selected.length} / {question.options.length} — plusieurs choix possibles
       </p>
-      {question.options.map((option) => (
-        <button
+      {question.options.map((option, index) => (
+        <AnswerOption
           key={option}
-          type="button"
-          data-testid={`${testIdPrefix}-option`}
-          onClick={() => !disabled && toggle(option)}
+          indicator={selected.includes(option) ? <Check className="size-3.5 text-sage" /> : String.fromCharCode(65 + index)}
+          selected={selected.includes(option)}
           disabled={disabled}
-          className={`btn btn-secondary justify-start text-left disabled:opacity-60 ${
-            selected.includes(option) ? "border-accent/60 bg-accent/10" : "border-line bg-canvas/60"
-          }`}
+          onClick={() => !disabled && toggle(option)}
+          testId={`${testIdPrefix}-option`}
         >
-          <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
-            {selected.includes(option) ? <Check className="size-3.5 text-sage" /> : String.fromCharCode(65 + question.options.indexOf(option))}
-          </span>
           {option}
-        </button>
+        </AnswerOption>
       ))}
     </div>
   );

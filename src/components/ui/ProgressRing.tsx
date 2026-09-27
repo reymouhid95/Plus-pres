@@ -10,7 +10,7 @@ type ProgressRingProps = {
   className?: string;
 };
 
-export default function ProgressRing({
+function ProgressRing({
   value,
   size = 84,
   stroke = 8,
@@ -68,3 +68,6 @@ export default function ProgressRing({
     </div>
   );
 }
+
+export { ProgressRing };
+export type { ProgressRingProps };

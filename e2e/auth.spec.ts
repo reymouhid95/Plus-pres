@@ -16,7 +16,7 @@ test.describe("Authentification", () => {
 
     await page.getByRole("button", { name: "Déconnexion" }).click();
     await page.waitForURL((url) => url.pathname === "/");
-    await expect(page.getByRole("link", { name: "Se connecter" })).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("link", { name: "Se connecter" })).toBeVisible();
 
     await login(page, email);
     await expect(page.getByRole("heading", { name: "Bonjour, Alice" })).toBeVisible();

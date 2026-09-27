@@ -1,7 +1,7 @@
 /** @vitest-environment jsdom */
 import { describe, expect, it } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
-import ProgressRing from "./ProgressRing";
+import { ProgressRing } from "./ProgressRing";
 
 describe("ProgressRing", () => {
   it("expose un libellé lisible par les lecteurs d'écran", () => {
