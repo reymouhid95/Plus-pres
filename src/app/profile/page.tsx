@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, Heart, Save } from "lucide-react";
-import { toast } from "@/components/ui/Toaster";
+import { toast } from "@/components/ui/ToastSystem";
 import { Skeleton } from "@/components/ui/Skeleton";
 import Logo from "@/components/Logo";
 

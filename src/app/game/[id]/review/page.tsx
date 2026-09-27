@@ -5,7 +5,7 @@ import { ArrowLeft, Check, History, Play, X } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { getSessionReview } from "@/lib/history";
 import AppHeader from "@/components/AppHeader";
-import ProgressRing from "@/components/ui/ProgressRing";
+import { ProgressRing } from "@/components/ui/ProgressRing";
 import { levelMeta } from "@/lib/levels";
 
 export const dynamic = "force-dynamic";

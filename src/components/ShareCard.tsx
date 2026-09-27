@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Download } from "lucide-react";
-import { toast } from "@/components/ui/Toaster";
+import { toast } from "@/components/ui/ToastSystem";
 
 type ShareCardProps = {
   percentage: number;

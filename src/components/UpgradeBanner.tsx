@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Sparkles } from "lucide-react";
-import { toast } from "@/components/ui/Toaster";
+import { toast } from "@/components/ui/ToastSystem";
 
 /**
  * Conversion d'un joueur invité en compte complet (§29) :
