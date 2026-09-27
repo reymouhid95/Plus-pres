@@ -25,6 +25,8 @@ interface AnalyticsEventData {
   userId?: string;
   duoId?: string;
   sessionId?: string;
+  roundId?: string;
+  matched?: boolean;
   metadata?: Record<string, unknown>;
 }
 
@@ -43,7 +45,7 @@ export async function trackEvent(
         userId: data.userId,
         duoId: data.duoId,
         sessionId: data.sessionId,
-        metadata: data.metadata ?? {},
+        metadata: (data.metadata ?? {}) as any,
       },
     });
   } catch (error) {

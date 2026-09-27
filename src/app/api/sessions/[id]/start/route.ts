@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { isDuoMember } from "@/lib/duo";
 import { canStart, SESSION_STATUS } from "@/lib/session-state";
 import { rateLimit, rateLimitConfigs, identifiers } from "@/lib/rate-limit";
+import { trackEvent } from "@/lib/analytics";
 
 /** Démarrer une expérience depuis le lobby (§11). Chaque membre peut lancer. */
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -46,6 +47,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     where: { id },
     data: { status: SESSION_STATUS.PLAYING },
   });
+
+  await trackEvent("session_started", { userId, duoId: gameSession.duoId, sessionId: id });
 
   return NextResponse.json(updated);
 }

@@ -12,8 +12,6 @@ export async function POST(req: Request) {
   if (!session?.user) return NextResponse.json({ error: "Non authentifié." }, { status: 401 });
 
   const userId = (session.user as any).id as string;
-  const body = await req.json().catch(() => ({}));
-  const duoId = typeof body?.duoId === "string" ? body.duoId : null;
 
   // Rate limiting modéré pour les actions de jeu (60 req/min par user)
   const rl = rateLimit(
