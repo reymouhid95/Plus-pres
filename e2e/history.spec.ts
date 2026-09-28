@@ -23,7 +23,7 @@ test.describe("Historique", () => {
       await pageB.getByTestId("join-code").fill(code);
       await pageB.getByTestId("join-session").click();
       await pageB.waitForURL(/\/game\//);
-      await expect(pageA.getByText("avec Bob")).toBeVisible({ timeout: 30_000 });
+      await expect(pageA.getByText("Toi + Bob")).toBeVisible({ timeout: 30_000 });
 
       await expect(pageA.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });
       await pageA.getByTestId("start-session").click();

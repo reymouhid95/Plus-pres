@@ -28,12 +28,19 @@ export function AnswerOption({
       data-testid={testId}
       onClick={onClick}
       disabled={disabled}
-      className={`btn btn-secondary justify-start text-left disabled:opacity-60 ${
-        selected ? "border-accent/60 bg-accent/10" : "border-line bg-canvas/60"
+      aria-pressed={selected}
+      className={`btn btn-secondary justify-start text-left transition-[background-color,border-color,box-shadow,transform] duration-200 ${
+        selected
+          ? "border-accent/60 bg-accent/10 shadow-sm"
+          : "border-line bg-canvas/60 disabled:opacity-60"
       } ${className}`}
     >
       {indicator !== undefined ? (
-        <span className="grid size-6 shrink-0 place-items-center rounded-full border border-line text-[0.7rem] font-semibold text-muted">
+        <span
+          className={`grid size-6 shrink-0 place-items-center rounded-full border text-[0.7rem] font-semibold transition-colors duration-200 ${
+            selected ? "border-accent/60 text-accent" : "border-line text-muted"
+          }`}
+        >
           {indicator}
         </span>
       ) : null}

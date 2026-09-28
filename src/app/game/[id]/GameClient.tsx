@@ -500,13 +500,22 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
           data-testid="lobby"
           className="flex flex-1 flex-col items-center justify-center text-center animate-fade-up"
         >
-          <span className="grid size-16 place-items-center rounded-full gradient-brand-soft">
-            <Users className="size-7 text-accent" strokeWidth={1.8} />
-          </span>
-          <h1 className="mt-6 font-display text-3xl font-semibold text-fg">
-            Le duo est au complet
+          {/* Toi + Partenaire : les deux avatars côte à côte */}
+          <div className="flex -space-x-3">
+            {players.map((player) => (
+              <span
+                key={player.id}
+                data-testid="lobby-avatar"
+                className="grid size-14 place-items-center rounded-full border-2 border-canvas bg-surface text-2xl shadow-sm"
+              >
+                {player.avatarEmoji}
+              </span>
+            ))}
+          </div>
+
+          <h1 className="mt-5 font-display text-3xl font-semibold text-fg">
+            Toi + {partnerName}
           </h1>
-          <p className="mt-2 text-sm text-muted">avec {partnerName}</p>
 
           <div className="mt-7 grid w-full grid-cols-2 gap-3">
             {players.map((player) => (
@@ -524,7 +533,8 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             ))}
           </div>
 
-          <p className="mt-6 flex items-center gap-2 text-sm font-medium text-sage">
+          {/* Statut unique : les deux sont là, plus rien d'autre à faire. */}
+          <p className="badge badge-sage mt-6" data-testid="lobby-status">
             <Check className="size-4" />
             Les deux joueurs sont prêts.
           </p>
@@ -713,37 +723,63 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
       <TopBar code={state.code} copied={copied} onCopy={copyCode} />
 
       <section className="mt-6 animate-fade-up">
-        <div className="flex items-center gap-2">
-          {[1, 2, 3].map((lvl) => {
-            const barMeta = levelMeta(lvl);
-            const active = lvl === state.currentLevel;
-            const passed = lvl < state.currentLevel;
-            return (
-              <div key={lvl} className="flex min-w-0 flex-1 flex-col gap-1.5">
+        {/* Progression discrète : 6 cartes en points, sans compteur chiffré. */}
+        <div className="flex items-center justify-between gap-4">
+          <div
+            data-testid="progress"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={state.maxRounds}
+            aria-valuenow={Math.min(state.roundsPlayed + 1, state.maxRounds)}
+            aria-label={`Carte ${Math.min(state.roundsPlayed + 1, state.maxRounds)} sur ${state.maxRounds}`}
+            className="flex items-center gap-2"
+          >
+            {Array.from({ length: state.maxRounds }, (_, index) => {
+              const played = index < state.roundsPlayed;
+              const next = index === state.roundsPlayed;
+              return (
                 <span
-                  className="h-1.5 w-full rounded-full transition-colors duration-500"
+                  key={index}
+                  data-testid={`progress-dot-${index}`}
+                  className={`size-2.5 rounded-full transition-colors duration-500 ${
+                    played ? "" : next ? "border-2" : "border"
+                  }`}
                   style={{
-                    backgroundColor: active || passed ? barMeta.color : "var(--color-line)",
+                    backgroundColor: played ? meta.color : "transparent",
+                    borderColor: played
+                      ? undefined
+                      : next
+                        ? meta.color
+                        : "var(--color-line)",
                   }}
                 />
-                <span
-                  className="truncate text-[0.7rem] font-semibold tracking-wide"
-                  style={{ color: active ? barMeta.color : "var(--color-muted)" }}
-                >
-                  {barMeta.label}
-                </span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {/* Timer discret en haut, jamais dominant. */}
+          {round?.status === "pending" && remaining !== null && (
+            <span
+              data-testid="countdown"
+              role="timer"
+              aria-live="polite"
+              className={`flex shrink-0 items-center gap-1.5 text-sm tabular-nums ${
+                timeUp ? "text-accent" : "text-muted"
+              }`}
+            >
+              <Timer className="size-3.5" />
+              {timeUp ? "00:00" : formatCountdown(remaining)}
+            </span>
+          )}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3">
+        <div className="mt-3 flex items-center justify-between gap-3">
           <p className="flex min-w-0 items-center gap-2 text-sm text-muted">
             <span className="text-base leading-none">{partner?.avatarEmoji ?? "·"}</span>
             <span className="truncate">avec {partnerName}</span>
           </p>
-          <span className="badge shrink-0">
-            Niveau {state.currentLevel} / 3
+          <span className="badge shrink-0" style={{ color: meta.color }}>
+            {meta.label}
           </span>
         </div>
 
@@ -949,52 +985,42 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
           </div>
         )}
 
-        {/* Question en cours */}
+        {/* Question en cours : une question, beaucoup d'espace, pas de carte serrée. */}
         {round && round.status === "pending" && (
-          <div className="card p-6 animate-pop">
-            <p className="text-xs uppercase tracking-[0.16em] text-muted">
-              Question · niveau {round.level}
-            </p>
-            <p className="mt-2.5 font-display text-xl leading-snug font-semibold text-fg">
-              {round.question.text}
-            </p>
-
-            {remaining !== null && (
-              <div
-                data-testid="countdown"
-                className="mt-4 flex items-center justify-between rounded-2xl border border-line bg-canvas/60 px-4 py-2.5"
-                role="timer"
-                aria-live="polite"
-              >
-                <span className="flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.14em] text-muted">
-                  <Timer className="size-3.5" />
-                  {timeUp ? "Temps écoulé" : "Temps restant"}
-                </span>
-                <span
-                  className={`font-display text-lg font-semibold tabular-nums ${timeUp ? "text-accent" : "text-fg"}`}
-                >
-                  {timeUp ? "0:00" : formatCountdown(remaining)}
-                </span>
-              </div>
+          <section data-testid="question" className="mt-8 animate-pop">
+            {state.predictionsEnabled && (
+              <span className={`badge ${round.myPrediction ? "badge-sage" : "badge-accent"}`}>
+                {round.myPrediction ? "Étape 2 sur 2 · Réponds" : "Étape 1 sur 2 · Devine"}
+              </span>
             )}
 
+            <h2 className="mt-4 font-display text-3xl leading-[1.15] font-semibold text-fg sm:text-4xl">
+              {round.question.text}
+            </h2>
+
             {state.predictionsEnabled && !round.myPrediction ? (
-              <QuestionRenderer
-                question={{
-                  id: round.question.id,
-                  text: round.question.text,
-                  type: round.question.type,
-                  options: round.question.options,
-                  scaleMin: round.question.scaleMin,
-                  scaleMax: round.question.scaleMax,
-                }}
-                myAnswer={round.myPrediction}
-                disabled={predicting || timeUp}
-                onAnswer={predict}
-                testIdPrefix="predict"
-              />
+              <>
+                <p className="mt-3 text-sm leading-relaxed text-muted">
+                  Avant de répondre, devine ce que {partnerName} va choisir.
+                </p>
+                <QuestionRenderer
+                  key={`predict-${round.question.id}`}
+                  question={{
+                    id: round.question.id,
+                    text: round.question.text,
+                    type: round.question.type,
+                    options: round.question.options,
+                    scaleMin: round.question.scaleMin,
+                    scaleMax: round.question.scaleMax,
+                  }}
+                  myAnswer={round.myPrediction}
+                  disabled={predicting || timeUp}
+                  onAnswer={predict}
+                  testIdPrefix="predict"
+                />
+              </>
             ) : round.myAnswer ? (
-              <div className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4 text-center">
+              <div className="mt-6 rounded-2xl border border-line bg-canvas/60 px-4 py-4 text-center">
                 <p className="flex items-center justify-center gap-2 text-sm font-medium text-sage">
                   <Check className="size-4" />
                   Réponse enregistrée
@@ -1014,11 +1040,12 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             ) : (
               <>
                 {state.predictionsEnabled && round.myPrediction && (
-                  <p className="mt-4 text-sm text-muted">
+                  <p className="mt-3 text-sm text-muted">
                     Tu as prédit «&nbsp;{round.myPrediction}&nbsp;» — à toi de répondre.
                   </p>
                 )}
                 <QuestionRenderer
+                  key={`answer-${round.question.id}`}
                   question={{
                     id: round.question.id,
                     text: round.question.text,
@@ -1033,15 +1060,12 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 />
               </>
             )}
-          </div>
+          </section>
         )}
 
         {/* Tirage / attente */}
         {!round || round.status === "revealed" ? (
           <div className="card mt-4 flex flex-col items-center px-6 py-8 text-center">
-            <p data-testid="progress" className="mb-5 text-xs uppercase tracking-[0.16em] text-muted">
-              Carte {Math.min(state.roundsPlayed + 1, state.maxRounds)} / {state.maxRounds}
-            </p>
             {state.currentRound?.status === "revealed" && (
               <p className="mb-5 text-xs uppercase tracking-[0.16em] text-muted">
                 Prochaine manche
@@ -1105,7 +1129,7 @@ function formatCountdown(ms: number): string {
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
 
 function TopBar({

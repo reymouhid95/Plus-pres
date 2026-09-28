@@ -37,7 +37,8 @@ test.describe("Boucle cœur", () => {
 
       await expect(pageA.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });
       await pageA.getByTestId("start-session").click();
-      await expect(pageA.getByTestId("progress")).toContainText("Carte 1 / 6");
+      await expect(pageA.getByTestId("progress")).toHaveAttribute("aria-valuenow", "1");
+      await expect(pageA.getByTestId("progress-dot-0")).toBeVisible();
 
       // Manches 1-2 alignées, 3-4 différentes, 5-6 alignées. Le tireur alterne.
       // Prédictions toujours sur le premier choix → connaissance 10/12.

@@ -89,7 +89,7 @@ Chaque critère est vérifié : ✅ Validé · ❌ Non validé · ⚠️ Partiel
 - [x] SSE temps réel + fallback polling (2.5s)
 - [x] Timer 60/45/30s par niveau, synchro via serverNow
 - [x] CI : typecheck + unit tests + build + e2e (Playwright)
-- [x] 94 tests unitaires, 11 e2e tests (10/11 pass, 1 known flaky)
+- [x] 108 tests unitaires, 11 e2e tests (11/11 pass)
 - [x] Migrations additives (Neon), Prisma generate
 
 ## 14. Non-régression (Known issues)

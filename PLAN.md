@@ -139,10 +139,10 @@ Le compte à rebours « 3, 2, 1 » avant révélation est reporté (polish).
 - [x] Sécurité : rate limiting (auth 5/15min, game 60/min), sanitization DOMPurify, audit accès middleware
 - [x] Analytics §38 : events tracking complet (activation, engagement, interaction, rétention J+1/J+7/J+30, viral)
 - [x] Critères acceptation §44 : 15 points vérifiés (voir `ACCEPTANCE_CRITERIA.md`)
-- [x] Tests : typecheck + 94 unit + build + 10/11 e2e (1 flaky connu)
+- [x] Tests : typecheck + 108 unit + build + 11/11 e2e
 - [x] `ACCEPTANCE_CRITERIA.md` créé avec checklist complète §44
 
-⚠️ 1 e2e flaky connu : `results.spec.ts` (matched count timing) — non bloquant, tests individuels passent
+✅ e2e : 11/11 — le « flaky » `results.spec.ts` était en réalité la perte du bouton rematch (corrigé)
 
 ---
 
@@ -171,19 +171,26 @@ Objectif : Transformer le MVP fonctionnel en produit moderne, intuitif, élégan
 - [x] CTA unique visible : "Commencer une expérience à deux"
 - [x] Responsive mobile-first
 
+### Revue visuelle (après correctifs `globals.css`)
+- [x] Tokens shadcn remappés sur la palette projet (corps de page, `*`, `@theme inline`, `:root`) + police Karla partout (Geist retirée)
+- [x] 7 captures vérifiées (light/dark × landing/login/dashboard/histoire + mobile) — couleurs, contraste et typographie conformes
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e (base Docker, jamais Neon)
+
 ### Sprint UX 3 — Duo / Lobby
-- [ ] Création : Écran minimaliste "Créer une expérience" → génère code + redirection lobby
-- [ ] Rejoindre : `/join/[CODE]` → pseudo → lobby (sans compte)
-- [ ] Lobby : Quasi vide — "Toi + Partenaire", statut, bouton "Commencer" unique
-- [ ] Toast SSE : "X vient de rejoindre votre expérience 🎉"
+- [x] Création : Écran minimaliste "Créer une expérience" → génère code + redirection lobby
+- [x] Rejoindre : `/join/[CODE]` → pseudo → lobby (sans compte)
+- [x] Lobby : Quasi vide — "Toi + Partenaire", statut, bouton "Commencer" unique
+- [x] Toast SSE : "X vient de rejoindre votre expérience 🎉"
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (create, waiting, join, lobby)
 
 ### Sprint UX 4 — Game (Cœur)
-- [ ] Écran question : Une question, plein écran, beaucoup d'espace (`QuestionRenderer` existant OK)
-- [ ] Progression : Ligne discrète `● ● ● ○ ○ ○` (pas de compteur "4/6")
-- [ ] Timer : Discret `00:32` en haut, pas dominant
-- [ ] Réponse : Feedback immédiat, une seule active, transition douce
-- [ ] Prédiction (mode Devine) : Écran dédié avant réponse
-- [ ] Progression auto : Niveau auto (2 cartes/palier), fin auto à 6 cartes
+- [x] Écran question : Une question, plein écran, beaucoup d'espace (`QuestionRenderer` existant OK)
+- [x] Progression : Ligne discrète `● ● ● ○ ○ ○` (pas de compteur "4/6")
+- [x] Timer : Discret `00:32` en haut, pas dominant
+- [x] Réponse : Feedback immédiat, une seule active, transition douce
+- [x] Prédiction (mode Devine) : Écran dédié avant réponse
+- [x] Progression auto : Niveau auto (2 cartes/palier), fin auto à 6 cartes
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (draw, predict, answer, reveal)
 
 ### Sprint UX 5 — Interaction (Reveal + Réactions + Conversation)
 - [ ] Reveal : Compte à rebours 3-2-1 (nouveau)
