@@ -171,6 +171,11 @@ Objectif : Transformer le MVP fonctionnel en produit moderne, intuitif, élégan
 - [x] CTA unique visible : "Commencer une expérience à deux"
 - [x] Responsive mobile-first
 
+### Revue visuelle (après correctifs `globals.css`)
+- [x] Tokens shadcn remappés sur la palette projet (corps de page, `*`, `@theme inline`, `:root`) + police Karla partout (Geist retirée)
+- [x] 7 captures vérifiées (light/dark × landing/login/dashboard/histoire + mobile) — couleurs, contraste et typographie conformes
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e (base Docker, jamais Neon)
+
 ### Sprint UX 3 — Duo / Lobby
 - [ ] Création : Écran minimaliste "Créer une expérience" → génère code + redirection lobby
 - [ ] Rejoindre : `/join/[CODE]` → pseudo → lobby (sans compte)
