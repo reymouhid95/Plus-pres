@@ -177,10 +177,11 @@ Objectif : Transformer le MVP fonctionnel en produit moderne, intuitif, élégan
 - [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e (base Docker, jamais Neon)
 
 ### Sprint UX 3 — Duo / Lobby
-- [ ] Création : Écran minimaliste "Créer une expérience" → génère code + redirection lobby
-- [ ] Rejoindre : `/join/[CODE]` → pseudo → lobby (sans compte)
-- [ ] Lobby : Quasi vide — "Toi + Partenaire", statut, bouton "Commencer" unique
-- [ ] Toast SSE : "X vient de rejoindre votre expérience 🎉"
+- [x] Création : Écran minimaliste "Créer une expérience" → génère code + redirection lobby
+- [x] Rejoindre : `/join/[CODE]` → pseudo → lobby (sans compte)
+- [x] Lobby : Quasi vide — "Toi + Partenaire", statut, bouton "Commencer" unique
+- [x] Toast SSE : "X vient de rejoindre votre expérience 🎉"
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (create, waiting, join, lobby)
 
 ### Sprint UX 4 — Game (Cœur)
 - [ ] Écran question : Une question, plein écran, beaucoup d'espace (`QuestionRenderer` existant OK)

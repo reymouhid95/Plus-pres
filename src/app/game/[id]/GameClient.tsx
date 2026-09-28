@@ -500,13 +500,22 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
           data-testid="lobby"
           className="flex flex-1 flex-col items-center justify-center text-center animate-fade-up"
         >
-          <span className="grid size-16 place-items-center rounded-full gradient-brand-soft">
-            <Users className="size-7 text-accent" strokeWidth={1.8} />
-          </span>
-          <h1 className="mt-6 font-display text-3xl font-semibold text-fg">
-            Le duo est au complet
+          {/* Toi + Partenaire : les deux avatars côte à côte */}
+          <div className="flex -space-x-3">
+            {players.map((player) => (
+              <span
+                key={player.id}
+                data-testid="lobby-avatar"
+                className="grid size-14 place-items-center rounded-full border-2 border-canvas bg-surface text-2xl shadow-sm"
+              >
+                {player.avatarEmoji}
+              </span>
+            ))}
+          </div>
+
+          <h1 className="mt-5 font-display text-3xl font-semibold text-fg">
+            Toi + {partnerName}
           </h1>
-          <p className="mt-2 text-sm text-muted">avec {partnerName}</p>
 
           <div className="mt-7 grid w-full grid-cols-2 gap-3">
             {players.map((player) => (
@@ -524,7 +533,8 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             ))}
           </div>
 
-          <p className="mt-6 flex items-center gap-2 text-sm font-medium text-sage">
+          {/* Statut unique : les deux sont là, plus rien d'autre à faire. */}
+          <p className="badge badge-sage mt-6" data-testid="lobby-status">
             <Check className="size-4" />
             Les deux joueurs sont prêts.
           </p>

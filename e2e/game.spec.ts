@@ -33,7 +33,7 @@ test.describe("Partie", () => {
       await pageB.getByTestId("join-session").click();
       await pageB.waitForURL(/\/game\//);
 
-      await expect(pageA.getByText("avec Bob")).toBeVisible({ timeout: 30_000 });
+      await expect(pageA.getByText("Toi + Bob")).toBeVisible({ timeout: 30_000 });
 
       // Lobby : les deux joueurs sont prêts, Alice démarre l'expérience.
       await expect(pageA.getByTestId("lobby")).toBeVisible({ timeout: 30_000 });

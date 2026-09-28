@@ -32,6 +32,8 @@ export async function login(page: Page, email: string, password = PASSWORD): Pro
 export async function createSession(page: Page): Promise<string> {
   await page.goto("/dashboard");
   await page.getByTestId("create-session").click();
+  await page.waitForURL("**/create");
+  await page.getByTestId("generate-code").click();
   await page.waitForURL(/\/game\//);
 
   const code = page.getByTestId("session-code");

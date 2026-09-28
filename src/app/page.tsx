@@ -73,7 +73,7 @@ export default function Home() {
           </p>
 
           <div className="mt-9 animate-fade-up stagger-3">
-            <Link href="/register" className="btn btn-primary">
+            <Link href="/create" className="btn btn-primary">
               Commencer une expérience à deux
               <ArrowRight className="size-4" />
             </Link>
@@ -139,7 +139,7 @@ export default function Home() {
               Créez votre expérience et invitez votre partenaire en moins d’une minute.
             </p>
             <div className="mt-7">
-              <Link href="/register" className="btn btn-primary">
+              <Link href="/create" className="btn btn-primary">
                 Commencer une expérience à deux
                 <ArrowRight className="size-4" />
               </Link>

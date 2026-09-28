@@ -11,19 +11,9 @@ export default function DashboardActions() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function createGame() {
-    setLoading(true);
-    setError(null);
-    const res = await fetch("/api/sessions", { method: "POST" });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      setError(data.error ?? "Erreur.");
-      toast(data.error ?? "Impossible de créer la partie.", "error");
-      return;
-    }
-    toast("Partie créée — invite ton partenaire avec le code.", "success");
-    router.push(`/game/${data.id}`);
+  // L'écran de création vit sur /create (Sprint UX 3) : une seule action y attend.
+  function goToCreate() {
+    router.push("/create");
   }
 
   async function joinGame(event: React.FormEvent) {
@@ -57,13 +47,12 @@ export default function DashboardActions() {
           Crée une partie et invite ton partenaire avec le code généré.
         </p>
         <button
-          onClick={createGame}
-          disabled={loading}
+          onClick={goToCreate}
           data-testid="create-session"
           className="btn btn-primary btn-block mt-5"
         >
-          {loading ? "Création…" : "Créer une partie"}
-          {!loading && <ArrowRight className="size-4" />}
+          Créer une expérience
+          <ArrowRight className="size-4" />
         </button>
       </div>
 
