@@ -20,15 +20,23 @@ type QuestionRendererProps = {
 };
 
 function SingleChoice({ question, myAnswer, disabled, onAnswer, testIdPrefix = "answer" }: QuestionRendererProps) {
+  // Feedback immédiat : la sélection s'affiche sur le clic, le serveur confirme ensuite.
+  const [pending, setPending] = useState<string | number | null>(null);
+  const selectedValue = pending !== null ? pending : myAnswer;
+
   return (
     <div className="mt-5 flex flex-col gap-2.5">
       {question.options.map((option, index) => (
         <AnswerOption
           key={option}
           indicator={String.fromCharCode(65 + index)}
-          selected={myAnswer === option}
+          selected={selectedValue === option}
           disabled={disabled}
-          onClick={() => onAnswer(option)}
+          onClick={() => {
+            if (disabled) return;
+            setPending(option);
+            onAnswer(option);
+          }}
           testId={`${testIdPrefix}-option`}
         >
           {option}

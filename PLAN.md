@@ -184,12 +184,13 @@ Objectif : Transformer le MVP fonctionnel en produit moderne, intuitif, élégan
 - [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (create, waiting, join, lobby)
 
 ### Sprint UX 4 — Game (Cœur)
-- [ ] Écran question : Une question, plein écran, beaucoup d'espace (`QuestionRenderer` existant OK)
-- [ ] Progression : Ligne discrète `● ● ● ○ ○ ○` (pas de compteur "4/6")
-- [ ] Timer : Discret `00:32` en haut, pas dominant
-- [ ] Réponse : Feedback immédiat, une seule active, transition douce
-- [ ] Prédiction (mode Devine) : Écran dédié avant réponse
-- [ ] Progression auto : Niveau auto (2 cartes/palier), fin auto à 6 cartes
+- [x] Écran question : Une question, plein écran, beaucoup d'espace (`QuestionRenderer` existant OK)
+- [x] Progression : Ligne discrète `● ● ● ○ ○ ○` (pas de compteur "4/6")
+- [x] Timer : Discret `00:32` en haut, pas dominant
+- [x] Réponse : Feedback immédiat, une seule active, transition douce
+- [x] Prédiction (mode Devine) : Écran dédié avant réponse
+- [x] Progression auto : Niveau auto (2 cartes/palier), fin auto à 6 cartes
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (draw, predict, answer, reveal)
 
 ### Sprint UX 5 — Interaction (Reveal + Réactions + Conversation)
 - [ ] Reveal : Compte à rebours 3-2-1 (nouveau)
