@@ -197,6 +197,26 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     setShowMotivations(false);
   }, [currentRoundId]);
 
+  // Compte à rebours 3-2-1 avant chaque révélation (§24).
+  // Une seule animation par manche, désactivée si l'utilisateur préfère
+  // les animations réduites (§41 accessibilité).
+  const [revealStep, setRevealStep] = useState<number | null>(null);
+  const revealSeenRef = useRef<string | null>(null);
+  const revealedRoundId =
+    state?.currentRound?.status === "revealed" ? state.currentRound.id : null;
+
+  useEffect(() => {
+    if (!revealedRoundId || revealSeenRef.current === revealedRoundId) return;
+    revealSeenRef.current = revealedRoundId;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    timers.push(setTimeout(() => setRevealStep(3), 350));
+    timers.push(setTimeout(() => setRevealStep(2), 650));
+    timers.push(setTimeout(() => setRevealStep(1), 950));
+    timers.push(setTimeout(() => setRevealStep(null), 1250));
+    return () => timers.forEach(clearTimeout);
+  }, [revealedRoundId]);
+
   // Déclencher la découverte du jour quand la partie se termine
   useEffect(() => {
     if (state?.status === "completed" && !showDiscovery) {
@@ -216,6 +236,8 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
 
   const partner = state.host.id === userId ? state.partner : state.host;
   const partnerName = partner?.displayName ?? "votre partenaire";
+  const me = state.host.id === userId ? state.host : state.partner;
+  const myAvatar = me?.avatarEmoji ?? "🙂";
   const isMyTurn = state.turnUserId === userId;
   const meta = levelMeta(state.currentLevel);
   const round = state.currentRound;
@@ -790,7 +812,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
         {/* Révélation */}
         {round?.status === "revealed" && (
           <div
-            className="card p-6 text-center animate-pop"
+            className="card relative overflow-hidden p-6 text-center animate-pop"
             style={{
               borderColor: round.matched ? "color-mix(in oklab, var(--color-sage) 45%, transparent)" : undefined,
               backgroundColor: round.matched
@@ -798,6 +820,19 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 : undefined,
             }}
           >
+            {/* Suspense : 3 · 2 · 1 avant d'afficher le résultat (§24). */}
+            {revealStep !== null && (
+              <div
+                data-testid="reveal-countdown"
+                aria-hidden="true"
+                className="absolute inset-0 z-10 grid place-items-center bg-surface"
+              >
+                <span key={revealStep} className="font-display text-7xl font-semibold text-accent">
+                  {revealStep}
+                </span>
+              </div>
+            )}
+
             <p className="text-xs uppercase tracking-[0.16em] text-muted">Question révélée</p>
             <p className="mt-2 text-sm leading-relaxed text-fg">{round.question.text}</p>
 
@@ -807,7 +842,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             >
               {round.matched ? (
                 <span className="inline-flex items-center gap-2">
-                  <Check className="size-6" /> Vous êtes alignés
+                  <Heart className="size-6 text-accent" /> Vous êtes alignés
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-2">
@@ -816,12 +851,16 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
               )}
             </p>
 
+            {/* Les deux réponses, côte à côte, avec l'avatar de chacun. */}
             <div className="mt-5 grid grid-cols-2 gap-3 text-left">
               {round.answers.map((entry) => {
                 const mine = entry.userId === userId;
                 return (
                   <div key={entry.userId} className="rounded-2xl border border-line bg-canvas/60 px-3.5 py-3">
-                    <p className="text-[0.7rem] uppercase tracking-[0.14em] text-muted">
+                    <p className="flex items-center gap-1.5 text-[0.7rem] uppercase tracking-[0.14em] text-muted">
+                      <span className="text-sm normal-case" style={{ lineHeight: 1 }}>
+                        {mine ? myAvatar : partner?.avatarEmoji ?? "🙂"}
+                      </span>
                       {mine ? "Vous" : partnerName}
                     </p>
                     <p className="mt-1 text-sm font-medium text-fg">{entry.choice}</p>
@@ -872,9 +911,10 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                     data-testid={`reaction-${emoji}`}
                     onClick={() => react(emoji)}
                     aria-label={`Réagir ${emoji}`}
+                    aria-pressed={myReaction === emoji}
                     className={`grid size-11 place-items-center rounded-2xl border text-xl transition hover:scale-105 ${
                       myReaction === emoji
-                        ? "border-accent/60 bg-accent/10"
+                        ? "border-accent/60 bg-accent/10 scale-105 animate-pop"
                         : "border-line bg-canvas/60"
                     }`}
                   >
@@ -883,8 +923,13 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 ))}
               </div>
               {partnerReaction && (
-                <p data-testid="partner-reaction" className="mt-2.5 text-sm text-muted">
-                  {partnerName} a réagi {partnerReaction}
+                <p
+                  key={partnerReaction}
+                  data-testid="partner-reaction"
+                  className="mt-2.5 inline-flex items-center gap-1.5 text-sm text-muted animate-pop"
+                >
+                  {partnerName} a réagi
+                  <span className="text-base leading-none">{partnerReaction}</span>
                 </p>
               )}
             </div>
@@ -892,8 +937,9 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
             {/* Conversation après une divergence (§20, §21) */}
             {!round.matched && (
               <div className="mt-5 rounded-2xl border border-line bg-canvas/60 px-4 py-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-muted">Conversation</p>
                 {myDiscussion || partnerDiscussion ? (
-                  <div data-testid="discussion" className="flex flex-col gap-1.5 text-sm">
+                  <div data-testid="discussion" className="mt-2.5 flex flex-col gap-1.5 text-sm">
                     {myDiscussion && (
                       <p>
                         <span className="font-medium text-fg">Vous : </span>
@@ -915,7 +961,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                   </div>
                 ) : openersOpen && !showMotivations ? (
                   <>
-                    <p className="text-sm font-medium text-fg">
+                    <p className="mt-2.5 text-sm font-medium text-fg">
                       Vous avez choisi différemment. Pourquoi&nbsp;?
                     </p>
                     <div className="mt-3 grid grid-cols-1 gap-2">
@@ -955,7 +1001,7 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                   </>
                 ) : openersOpen ? (
                   <>
-                    <p className="text-sm font-medium text-fg">
+                    <p className="mt-2.5 text-sm font-medium text-fg">
                       Qu&apos;est-ce qui a guidé ton choix&nbsp;?
                     </p>
                     <div className="mt-3 flex flex-wrap justify-center gap-2">

@@ -193,11 +193,12 @@ Objectif : Transformer le MVP fonctionnel en produit moderne, intuitif, élégan
 - [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (draw, predict, answer, reveal)
 
 ### Sprint UX 5 — Interaction (Reveal + Réactions + Conversation)
-- [ ] Reveal : Compte à rebours 3-2-1 (nouveau)
-- [ ] Aligné : "❤️ Vous êtes alignés" + cartes côte à côte
-- [ ] Différent : "✨ Vous avez choisi différemment" + cartes + openers conversation
-- [ ] Réactions : 6 emojis, animation légère, visible des deux côtés
-- [ ] Conversation : Openers "Pourquoi ce choix ?" + motivations (Culture, Travail...)
+- [x] Reveal : Compte à rebours 3-2-1 (nouveau) — overlay opaque après le pop, désactivé si `prefers-reduced-motion`
+- [x] Aligné : "❤️ Vous êtes alignés" (cœur accent) + cartes côte à côte avec avatar de chacun
+- [x] Différent : "✨ Vous avez choisi différemment" + cartes + openers conversation
+- [x] Réactions : 6 emojis, sélection animée (`animate-pop`), réaction du partenaire en `key`-replay
+- [x] Conversation : Openers "Pourquoi ce choix ?" + motivations (Culture, Travail...) — libellé "Conversation"
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (countdown 3-2-1, aligné, différent, réactions, conversation)
 
 ### Sprint UX 6 — Résultats
 - [ ] Bilan visuel : "Vous avez découvert" → 4 lignes (Points communs, Différences, Bien deviné, Surprises, Conversations, Réactions)
