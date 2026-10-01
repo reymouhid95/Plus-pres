@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
+  BookOpen,
   Brain,
   Check,
   ClipboardCopy,
@@ -100,6 +101,9 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
   const [closedRoundId, setClosedRoundId] = useState<string | null>(null);
   const [showDiscovery, setShowDiscovery] = useState(false);
   const [discoveryContent, setDiscoveryContent] = useState<string>("");
+  // Une seule génération par session : évite que l'effet « completed »
+  // ne rouvre la modale en boucle après chaque fermeture.
+  const discoveryFetchedRef = useRef(false);
   const [saveMomentOpen, setSaveMomentOpen] = useState(false);
   const [saveMomentData, setSaveMomentData] = useState<{
     title: string;
@@ -217,12 +221,13 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
     return () => timers.forEach(clearTimeout);
   }, [revealedRoundId]);
 
-  // Déclencher la découverte du jour quand la partie se termine
+  // Déclencher la découverte du jour quand la partie se termine (une seule fois).
   useEffect(() => {
-    if (state?.status === "completed" && !showDiscovery) {
+    if (state?.status === "completed" && !discoveryFetchedRef.current) {
+      discoveryFetchedRef.current = true;
       handleSessionComplete();
     }
-  }, [state?.status, showDiscovery]);
+  }, [state?.status]);
 
   if (!state) {
     return (
@@ -231,6 +236,33 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
         <Skeleton className="mt-8 h-64 w-full" />
         <Skeleton className="mt-4 h-12 w-full" />
       </main>
+    );
+  }
+
+  // Écran de découverte du jour (modal) — prioritaire sur le bilan (§24).
+  if (showDiscovery) {
+    return (
+      <DiscoveryScreen
+        sessionId={sessionId}
+        duoId={state.duoId}
+        content={discoveryContent}
+        onSaveMoment={openSaveMoment}
+        onClose={() => setShowDiscovery(false)}
+      />
+    );
+  }
+
+  // Modal de sauvegarde de moment — prioritaire sur le bilan.
+  if (saveMomentOpen && saveMomentData) {
+    return (
+      <SaveMomentDialog
+        isOpen={saveMomentOpen}
+        onClose={() => setSaveMomentOpen(false)}
+        onSave={handleSaveMoment}
+        defaultTitle={saveMomentData.title}
+        defaultContent={saveMomentData.content}
+        questionId={saveMomentData.questionId}
+      />
     );
   }
 
@@ -700,40 +732,36 @@ export default function GameClient({ sessionId, userId }: { sessionId: string; u
                 </>
               )}
             </button>
-            <Link href="/dashboard" className="btn btn-secondary">
+            <button
+              type="button"
+              data-testid="save-moment"
+              onClick={() =>
+                openSaveMoment({
+                  title: `Notre découverte du ${new Date().toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "long",
+                  })}`,
+                  content:
+                    discoveryContent ||
+                    `Points communs : ${state.results.matched} · Différences : ${state.results.mismatched} · Bien deviné : ${state.results.knowledge.correct}/${state.results.knowledge.total}`,
+                })
+              }
+              className="btn btn-secondary"
+            >
+              <Heart className="size-4" />
+              Enregistrer ce moment
+            </button>
+            <Link href={`/game/${sessionId}/review`} className="btn btn-secondary">
+              <BookOpen className="size-4" />
+              Revoir les questions
+            </Link>
+            <Link href="/dashboard" className="btn btn-ghost">
               Retour au tableau de bord
             </Link>
           </div>
 
           </section>
       </main>
-    );
-  }
-
-  // Écran de découverte du jour (modal)
-  if (showDiscovery) {
-    return (
-      <DiscoveryScreen
-        sessionId={sessionId}
-        duoId={state.duoId}
-        content={discoveryContent}
-        onSaveMoment={openSaveMoment}
-        onClose={() => setShowDiscovery(false)}
-      />
-    );
-  }
-
-  // Modal de sauvegarde de moment
-  if (saveMomentOpen && saveMomentData) {
-    return (
-      <SaveMomentDialog
-        isOpen={saveMomentOpen}
-        onClose={() => setSaveMomentOpen(false)}
-        onSave={handleSaveMoment}
-        defaultTitle={saveMomentData.title}
-        defaultContent={saveMomentData.content}
-        questionId={saveMomentData.questionId}
-      />
     );
   }
 
