@@ -2,6 +2,18 @@ import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 import { createSession, register, uniqueEmail } from "./helpers";
 
+/** Ferme la modale « Découverte du jour » si elle s'est ouverte (§24). */
+async function closeDiscovery(page: Page): Promise<void> {
+  const heading = page.getByRole("heading", { name: "Découverte du jour" });
+  try {
+    await heading.waitFor({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Continuer" }).click();
+    await expect(heading).toBeHidden({ timeout: 5_000 });
+  } catch {
+    // Découverte non générée — on continue sans modale.
+  }
+}
+
 /** Joue une manche : prédictions (toujours le premier choix), réponses, révélation. */
 async function playRound(drawer: Page, other: Page, sameChoice: boolean): Promise<void> {
   await drawer.getByTestId("draw").click();
@@ -103,6 +115,10 @@ test.describe("Boucle cœur", () => {
       // Attendre que l'état se propage
       await pageA.waitForTimeout(3000);
 
+      // La modale « Découverte du jour » s'ouvre automatiquement à la fin (§24)
+      // et masque le bilan tant qu'elle n'est pas fermée.
+      await closeDiscovery(pageA);
+
       // Attendre la révélation de la dernière manche (ou directement le bilan si reveal-result ne s'affiche pas)
       await Promise.race([
         expect(pageA.getByTestId("reveal-result")).toBeVisible({ timeout: 15_000 }),
@@ -111,6 +127,7 @@ test.describe("Boucle cœur", () => {
 
       // Bilan automatique (§22).
       await expect(pageA.getByTestId("results")).toBeVisible({ timeout: 30_000 });
+      await closeDiscovery(pageB);
       await expect(pageB.getByTestId("results")).toBeVisible({ timeout: 30_000 });
 
       // Attendre que les données de bilan soient à jour (propagation SSE/polling)

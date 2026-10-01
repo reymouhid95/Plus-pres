@@ -201,10 +201,11 @@ Objectif : Transformer le MVP fonctionnel en produit moderne, intuitif, élégan
 - [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e + captures light/dark (countdown 3-2-1, aligné, différent, réactions, conversation)
 
 ### Sprint UX 6 — Résultats
-- [ ] Bilan visuel : "Vous avez découvert" → 4 lignes (Points communs, Différences, Bien deviné, Surprises, Conversations, Réactions)
-- [ ] Découverte du jour : Synthèse factuelle générée
-- [ ] Actions : "Enregistrer ce moment" (modal), "Rejouer" (rematch même duo), "Revoir questions"
-- [ ] Partage : Après moment intéressant, pas immédiat
+- [x] Bilan visuel : "Vous avez découvert" → 6 lignes (Points communs, Différences, Bien deviné, Surprises, Conversations, Réactions) + barres par niveau
+- [x] Découverte du jour : modale auto à la fin (§24) — fix priorité des `return` (jamais atteinte avant) + anti-boucle `ref`
+- [x] Actions : "Enregistrer ce moment" (modal, titre + synthèse pré-remplis), "Rejouer" (rematch même duo), "Revoir questions" (`/game/[id]/review`)
+- [x] Partage : "Copier" depuis la découverte, après le moment (pas immédiat)
+- [x] Validation : `typecheck` + 108 unit + `build` + 11/11 e2e (fermeture modales A+B dans results.spec) + captures light/dark (découverte, bilan, dialog, review)
 
 ### Sprint UX 7 — History / Moments / Challenges
 - [ ] `/history` : Espace émotionnel (timeline moments + sessions + évolution)
